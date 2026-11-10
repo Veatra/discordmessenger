@@ -17,13 +17,6 @@ const eMessageStyle g_indexToMessageStyle[] = {
 	MS_IMAGE,
 };
 
-const eMessageStyle g_indexToMessageStyleNT4[] = {
-	MS_3DFACE,
-	MS_FLAT,
-	MS_FLATBR,
-	MS_IMAGE,
-};
-
 const int g_indexToUserInterfaceScale[] = {
 	1000,
 	800,
@@ -174,15 +167,13 @@ void OptionsInitPage(HWND hwndDlg, int pageNum)
 
 			HWND hCBox = GetDlgItem(hwndDlg, IDC_MESSAGE_STYLE);
 
-			bool beforeW2K = LOBYTE(GetVersion()) < 5;
-			const eMessageStyle* table = beforeW2K ? g_indexToMessageStyleNT4 : g_indexToMessageStyle;
-			size_t tableCount = beforeW2K ? _countof(g_indexToMessageStyleNT4) : _countof(g_indexToMessageStyle);
+			const eMessageStyle* table = g_indexToMessageStyle;
+			size_t tableCount = _countof(g_indexToMessageStyle);
 
 			// NOTE: these must match the order in the specified table!
 			ComboBox_AddString(hCBox, TEXT("3-D frame"));
 
-			if (!beforeW2K)
-				ComboBox_AddString(hCBox, TEXT("Gradient"));
+			ComboBox_AddString(hCBox, TEXT("Gradient"));
 
 			ComboBox_AddString(hCBox, TEXT("Flat color 1 (3-D face color)"));
 			ComboBox_AddString(hCBox, TEXT("Flat color 2 (window color)"));
@@ -261,16 +252,6 @@ void OptionsInitPage(HWND hwndDlg, int pageNum)
 
 			CheckDlgButton(hwndDlg, IDC_MINIMIZE_TO_NOTIF, GetLocalSettings()->GetMinimizeToNotif() ? BST_CHECKED : BST_UNCHECKED);
 
-			// We do not support minimizing to notification in these Windows versions.
-			// You don't have a taskbar, and as such, the only way to bring back the
-			// application is by trying to open it again, which is extremely unintuitive.
-			//
-			// Just minimize the app to an icon.
-			if (LOBYTE(GetVersion()) < 4) {
-				EnableWindow(GetDlgItem(hwndDlg, IDC_MINIMIZE_TO_NOTIF), FALSE);
-				CheckDlgButton(hwndDlg, IDC_MINIMIZE_TO_NOTIF, BST_UNCHECKED);
-				GetLocalSettings()->SetMinimizeToNotif(false);
-			}
 			break;
 		}
 		case PG_CONNECTION:
@@ -391,10 +372,9 @@ INT_PTR OptionsHandleCommand(HWND hwndParent, HWND hWnd, int pageNum, UINT uMsg,
 				{
 					if (HIWORD(wParam) != CBN_SELCHANGE)
 						break;
-							
-					bool beforeW2K = LOBYTE(GetVersion()) < 5;
-					const eMessageStyle* table = beforeW2K ? g_indexToMessageStyleNT4 : g_indexToMessageStyle;
-					size_t tableCount = beforeW2K ? _countof(g_indexToMessageStyleNT4) : _countof(g_indexToMessageStyle);
+
+					const eMessageStyle* table = g_indexToMessageStyle;
+					size_t tableCount = _countof(g_indexToMessageStyle);
 
 					int sel = ComboBox_GetCurSel((HWND) lParam);
 					if (sel == CB_ERR || sel < 0 || sel >= int(tableCount))

@@ -24,9 +24,9 @@
 - Linux development uses an i686 MinGW cross-compiler. Visual Studio project
   files are under `vs`. Read `README.md`, `Makefile`, and
   `.github/workflows/build.yml` for the current build workflow.
-- Preserve the intended legacy Windows compatibility. Avoid introducing newer
-  Windows APIs or C++ features without checking existing compatibility wrappers
-  and discussing a necessary compatibility change with the user.
+- This fork targets Windows 8.1 (`_WIN32_WINNT`/`WINVER=0x0603`) and retains
+  C++11. Do not reintroduce pre-8.1 UI/resource fallbacks or add Windows 10-only
+  APIs. Keep shared dependency wrappers unless their removal is validated.
 - Keep MinGW and Visual Studio source lists consistent when adding, removing,
   or renaming files. Do not edit vendored libraries or submodule revisions unless
   required by the task.
@@ -65,7 +65,9 @@ Run commands from the repository root unless stated otherwise.
    for behavior changes. Do not mistake third-party dependency tests for an
    application test suite. Environment-local test helpers, if present, supplement
    validation but are not guaranteed to exist in another environment.
-7. Compilation does not validate Windows GUI or live Discord behavior. State
+7. Run `tests/typing_expiry.cpp` with a native C++ compiler and
+   `python3 tests/status_bar_timers.py` when changing typing-indicator behavior.
+8. Compilation does not validate Windows GUI or live Discord behavior. State
    precisely what was tested and what remains untested. Do not require real
    Discord credentials for compilation or isolated tests.
 

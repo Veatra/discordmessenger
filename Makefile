@@ -13,8 +13,8 @@ USER_DEFINES  ?=
 COMMIT_HASH   ?= undefined
 
 # Windows version macros
-WINVER  ?= 0x0501
-WIN32IE ?= 0x0500
+WINVER  ?= 0x0603
+WIN32IE ?= 0x0600
 
 # Build directories
 BUILD_DIR = build
@@ -134,9 +134,8 @@ MNSSV = $(XL) --minor-subsystem-version $(XL)
 MJOSV = $(XL) --major-os-version $(XL)
 MNOSV = $(XL) --minor-os-version $(XL)
 
-# Give it a subsystem version of 4.0 and an OS version of 1.0
-# (replace with 3.10 if you intend to run on NT 3.1)
-SSYSVER = $(MJSSV) 4 $(MNSSV) 0 $(MJOSV) 1 $(MNOSV) 0
+# Windows 8.1 minimum (6.3).
+SSYSVER = $(MJSSV) 6 $(MNSSV) 3 $(MJOSV) 6 $(MNOSV) 3
 
 # -----------------------------
 # Compiler and linker flags

@@ -41,6 +41,7 @@ public:
 	// should only be called by Main.cpp
 	void DrawItem(LPDRAWITEMSTRUCT lpDIS);
 	void UpdateParts(int width);
+	void SetAnimationVisible(bool visible);
 
 	void AddTypingName(Snowflake sf, time_t startTime, const std::string& name);
 	void RemoveTypingName(Snowflake sf);
@@ -52,9 +53,10 @@ public:
 
 private:
 	std::vector<TypingUser> m_typingUsers;
-	UINT_PTR m_timerExpireEvent;
-	UINT_PTR m_timerAnimEvent;
+	UINT_PTR m_timerExpireEvent = 0;
+	UINT_PTR m_timerAnimEvent = 0;
+	bool m_animationVisible = false;
 	int m_anim_frame_number = 0;
-	RECT m_typing_status_rect;
-	RECT m_typing_animation_rect;
+	RECT m_typing_status_rect = {};
+	RECT m_typing_animation_rect = {};
 };

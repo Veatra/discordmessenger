@@ -1,5 +1,6 @@
 #include "StatusBar.hpp"
 #include "Main.hpp"
+#include "state/TypingExpiry.hpp"
 
 enum {
 	IDP_NOTIFS,
@@ -23,20 +24,9 @@ StatusBar* StatusBar::Create(HWND hParent)
 		NULL
 	);
 
-	if (!pBar->m_hwnd)
-	{
-		// try it with CreateStatusWindow
-		pBar->m_hwnd = ri::CreateStatusWindowANSI(
-			WS_CHILD | WS_VISIBLE,
-			"",
-			hParent,
-			CID_STATUSBAR
-		);
-	}
-
 	if (!pBar->m_hwnd) {
 		delete pBar;
-		pBar = nullptr;
+		return nullptr;
 	}
 
 	SetWindowFont(pBar->m_hwnd, g_MessageTextFont, TRUE);
@@ -63,9 +53,9 @@ void StatusBar::TimerProc(HWND hWnd, UINT uMsg, UINT_PTR uTimerId, DWORD dwTime)
 
 void StatusBar::AddTypingName(Snowflake sf, time_t startTime, const std::string& name)
 {
-	uint64_t currentTime = time(NULL) * 1000ULL;
+	uint64_t currentTime = uint64_t(time(NULL)) * 1000ULL;
 	uint64_t startTimeMS = (uint64_t)startTime * 1000ULL;
-	if (startTimeMS + TYPING_INTERVAL <= currentTime)
+	if (!TypingTimeRemainingMs(startTimeMS, currentTime, TYPING_INTERVAL))
 		return;
 
 	RemoveTypingNameInternal(sf);
@@ -85,7 +75,7 @@ void StatusBar::RemoveTypingName(Snowflake sf)
 	}
 	else
 	{
-		StopAnimation();
+		ClearTypers();
 	}
 
 	InvalidateRect(m_hwnd, &m_typing_status_rect, TRUE);
@@ -118,12 +108,13 @@ void StatusBar::SetExpiryTimerIn(int ms)
 {
 	if (m_timerExpireEvent)
 		KillTimer(m_hwnd, m_timerExpireEvent);
-	m_timerExpireEvent = SetTimer(m_hwnd, IDT_EXPIRY, ms, TimerProc);
+	m_timerExpireEvent = SetTimer(m_hwnd, IDT_EXPIRY, ms > 0 ? ms : 1, TimerProc);
 }
 
 void StatusBar::StartAnimation()
 {
-	StopAnimation();
+	if (m_timerAnimEvent || !m_animationVisible || m_typingUsers.empty())
+		return;
 	m_timerAnimEvent = SetTimer(m_hwnd, IDT_ANIMATION, ANIMATION_MS, TimerProc);
 	InvalidateRect(m_hwnd, &m_typing_animation_rect, TRUE);
 }
@@ -132,32 +123,33 @@ void StatusBar::StopAnimation()
 {
 	if (m_timerAnimEvent)
 		KillTimer(m_hwnd, m_timerAnimEvent);
+	m_timerAnimEvent = 0;
 	InvalidateRect(m_hwnd, &m_typing_animation_rect, TRUE);
 }
 
 int StatusBar::GetNextExpiryTime()
 {
-	time_t t = time(NULL) * 1000LL;
+	uint64_t t = uint64_t(time(NULL)) * 1000ULL;
 	uint64_t minExpiry = UINT64_MAX;
 
 	for (auto& tu : m_typingUsers)
 	{
-		uint64_t expiry = tu.m_startTimeMS + TYPING_INTERVAL - t;
+		uint64_t expiry = TypingTimeRemainingMs(tu.m_startTimeMS, t, TYPING_INTERVAL);
 		if (minExpiry > expiry)
 			minExpiry = expiry;
 	}
 
-	return int(minExpiry);
+	return m_typingUsers.empty() ? 0 : int(minExpiry);
 }
 
 void StatusBar::OnExpiryTick()
 {
-	uint64_t timeMS = time(NULL) * 1000LL;
+	uint64_t timeMS = uint64_t(time(NULL)) * 1000ULL;
 	bool bNeedUpdate = false;
 
 	for (auto iter = m_typingUsers.begin(); iter != m_typingUsers.end(); )
 	{
-		if (iter->m_startTimeMS - 100 < timeMS) {
+		if (!TypingTimeRemainingMs(iter->m_startTimeMS, timeMS, TYPING_INTERVAL)) {
 			size_t dist = std::distance(m_typingUsers.begin(), iter);
 			m_typingUsers.erase(iter);
 			iter = m_typingUsers.begin() + dist;
@@ -180,8 +172,21 @@ void StatusBar::OnExpiryTick()
 	}
 }
 
+void StatusBar::SetAnimationVisible(bool visible)
+{
+	if (m_animationVisible == visible)
+		return;
+	m_animationVisible = visible;
+	if (visible)
+		StartAnimation();
+	else
+		StopAnimation();
+}
+
 void StatusBar::OnAnimationTick()
 {
+	if (!m_timerAnimEvent || !m_animationVisible)
+		return;
 	m_anim_frame_number = (m_anim_frame_number + 1) % ANIMATION_FRAMES;
 	InvalidateRect(m_hwnd, &m_typing_animation_rect, TRUE);
 }
@@ -253,6 +258,7 @@ void StatusBar::DrawItem(LPDRAWITEMSTRUCT lpDIS)
 		rcMeasure.right = rc.right - rc.left;
 		DrawText(hdc, typerText, -1, &rcMeasure, ri::GetWordEllipsisFlag() | DT_NOPREFIX | DT_VCENTER | DT_SINGLELINE | DT_CALCRECT);
 		DrawText(hdc, typerText, -1, &rc,        ri::GetWordEllipsisFlag() | DT_NOPREFIX | DT_VCENTER | DT_SINGLELINE);
+		free(typerText);
 		rc.left += rcMeasure.right - rcMeasure.left;
 
 		if (rc.left >= rc.right)
@@ -278,6 +284,11 @@ extern int g_SendButtonWidth;
 
 StatusBar::~StatusBar()
 {
+	if (!m_hwnd)
+		return;
+	StopAnimation();
+	if (m_timerExpireEvent)
+		KillTimer(m_hwnd, m_timerExpireEvent);
 	if (m_hwnd) {
 		BOOL b = DestroyWindow(m_hwnd);
 		assert(b && "StatusBar was already destroyed");

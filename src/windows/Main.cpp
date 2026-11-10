@@ -26,7 +26,6 @@
 #include "ShellNotification.hpp"
 #include "InstanceMutex.hpp"
 #include "CrashDebugger.hpp"
-#include "MemberListOld.hpp"
 #include "config/LocalSettings.hpp"
 #include "network/WebsocketClient.hpp"
 #include "utils/UpdateChecker.hpp"
@@ -1354,14 +1353,24 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		case WM_CLOSE:
 			CloseCleanup(hWnd);
 
-			if (GetLocalSettings()->GetMinimizeToNotif() && LOBYTE(GetVersion()) >= 4)
+			if (GetLocalSettings()->GetMinimizeToNotif())
 			{
 				GetFrontend()->HideWindow();
 				return 1;
 			}
 			break;
 
+		case WM_SHOWWINDOW:
+			if (g_pStatusBar)
+				g_pStatusBar->SetAnimationVisible(wParam != 0 && !IsIconic(hWnd));
+			break;
 		case WM_SIZE: {
+			if (g_pStatusBar)
+				g_pStatusBar->SetAnimationVisible(wParam != SIZE_MINIMIZED && IsWindowVisible(hWnd));
+			// Minimized dimensions must not overwrite the saved restore size.
+			if (wParam == SIZE_MINIMIZED)
+				break;
+
 			int width = LOWORD(lParam);
 			int height = HIWORD(lParam);
 
@@ -1789,12 +1798,6 @@ void InitializeFonts()
 		int h1 = -MulDiv(lf.lfHeight, 8, 3);
 		int h2 = MulDiv(h1, 4, 5);
 
-		if (LOBYTE(GetVersion()) <= 0x4)
-		{
-			h1 = MulDiv(lf.lfHeight, 6, 4);
-			h2 = MulDiv(lf.lfHeight, 5, 4);
-		}
-
 		// BOLD
 		lf.lfWeight = 700;
 		hfb = CreateFontIndirect(&lf);
@@ -1967,8 +1970,11 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLin
 	ERR_load_crypto_strings();
 
 	InitializeCOM(); // important because otherwise TTS/shell stuff might not work
-	InitCommonControls(); // actually a dummy but adds the needed reference to comctl32
-	// (see https://devblogs.microsoft.com/oldnewthing/20050718-16/?p=34913 )
+	INITCOMMONCONTROLSEX controls = { sizeof(controls), ICC_WIN95_CLASSES };
+	if (!InitCommonControlsEx(&controls)) {
+		MessageBox(NULL, TEXT("Could not initialize Windows common controls."), TEXT("Discord Messenger"), MB_ICONERROR | MB_OK);
+		return 1;
+	}
 
 	if (!ForceSingleInstance(g_className))
 		return 0;
@@ -1984,27 +1990,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLin
 	SetupCachePathIfNeeded();
 
 	LocalSettings* pSettings = GetLocalSettings();
-	DWORD version = GetVersion();
-
-	// Load the settings, and fix up some settings that are
-	// actually bad to leave on on NT 3.x or NT 4
 	pSettings->Load();
-
-	if (LOBYTE(version) < 5 && pSettings->GetMessageStyle() == MS_GRADIENT)
-	{
-		// You probably shouldn't be using the Gradient
-		// theme by default because it looks like crap.
-		// That's why I disabled it.
-		pSettings->SetMessageStyle(MS_3DFACE);
-	}
-
-	if (LOBYTE(version) < 4)
-	{
-		// You definitely shouldn't minimize yourself to the
-		// taskbar because there is no taskbar to minimize
-		// yourself to.
-		pSettings->SetMinimizeToNotif(false);
-	}
 
 	if (ShouldBlockDoubleBuffering())
 	{

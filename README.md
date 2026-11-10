@@ -1,8 +1,8 @@
 # Discord Messenger for Windows
 
-Discord Messenger is a messenger application designed to be compatible with Discord, while being
-backwards compatible with down to Windows 2000 (although support for even older versions has been
-attempted).
+This fork of Discord Messenger targets **Windows 8.1**. It keeps the existing
+32-bit Windows desktop client and quiet background reconnects. Windows versions
+older than 8.1 are no longer supported by this fork.
 
 Its motto: *It's time to ditch MSN and Yahoo.*
 
@@ -33,13 +33,12 @@ A Discord server about this client can be joined here: https://discord.gg/cEDjgD
 
 ## Minimum System Requirements
 
-- Windows NT 3.1, Windows 95, or newer (MinGW version)
+- Windows 8.1 (32-bit or 64-bit Windows, using the 32-bit MinGW executable).
+- Matching 32-bit OpenSSL DLLs and compiler runtime DLLs beside the executable.
+- Visual Studio builds also need their matching Visual C++ runtime, compatible
+  with Windows 8.1. MinGW binaries do not use that runtime.
 
-- Windows XP SP2 or newer (MSVC version)
-
-- Pentium Pro or Pentium 2 CPU (MinGW version) Pentium 4 CPU (MSVC version)
-
-- 64 MB of RAM, can do lower but might start to hit the page file
+Screenshots above are from the upstream project and include historical platforms.
 
 ## Building
 
@@ -50,11 +49,12 @@ the correct locations), check out the submodules with the command:
 
 Then you can start the build process.
 
-You can build this project in three ways.
+You can build this project with Visual Studio or MinGW on Linux.
 
 ### 1. Visual Studio
 
-This method can only support down to Windows XP SP2, but it's easier to get started with.
+Use a Windows SDK and compiler/runtime that support Windows 8.1; do not select
+a Windows 10-only runtime or APIs. The projects target `_WIN32_WINNT=0x0603`.
 
 1. Compile OpenSSL for Win32, or find a distribution of OpenSSL 3.X.
 
@@ -84,9 +84,6 @@ https://developers.google.com/speed/webp/download.  Extract the archive and plac
 ### 2. MinGW (on Linux, targeting Windows)
 
 (Note: x64 compilation with MinGW is currently not supported)
-
-**(NOTE: The versions of MinGW your package manager(s) provide(s) may not target your desired platform!
-If you want Pentium 1 support and/or native Windows 95/NT 3.x support, see: [Pentium Toolchain Build Guide](doc/pentium-toolchain/README.md))**
 
 1. Acquire mingw-w64:
 ```
@@ -123,53 +120,41 @@ make -j12
 
 Use the following command line:
 ```
-make DEBUG=no UNICODE=[no|yes] [-j (your core count)]
+make -j4 all DEBUG=no UNICODE=yes
 ```
 
-If you didn't compile LibWebP you must additionally set `DISABLE_WEBP=yes`.
+If you did not compile LibWebP, add both `DISABLE_WEBP=1` and
+`USER_DEFINES=-DWEBP_DISABLED`. This disables WebP image decoding; the standard
+build retains it. Always use the explicit `all` target.
+
+For an ANSI build, use `UNICODE=no` with separate `BUILD_DIR` and `BIN_DIR`
+values to avoid reusing Unicode objects. Keep the default Windows 8.1 API and
+subsystem baseline; do not lower `WINVER`.
 
 The finished binary will be placed in `./bin/DiscordMessenger.exe`. Enjoy!
 
-### 3. MinGW (old Windows method)
+### Validation and Windows 8.1 behavior
 
-(Note: x64 compilation with MinGW is currently not supported)
+Run the portable expiry regression check with a native C++ compiler:
 
-1. Acquire MinGW-6.3.0.  This is the last version of the original Minimalist GNU for Windows.
+```sh
+g++ -std=c++11 -Wall -Wextra -Isrc/core tests/typing_expiry.cpp -o /tmp/dm-typing-expiry
+/tmp/dm-typing-expiry
+python3 tests/status_bar_timers.py
+```
 
-NOTE: You might be able to use Mingw-w64 with 32-bit mode, but you might run into trouble running the
-final product on anything newer than XP.
+The Win32 timer test uses doubles for the platform calls; it is not a Windows GUI
+test. On Windows 8.1, smoke-test login, server/DM switching, attachments, typing
+indicators, tray hide/restore, minimize/restore, and a network interruption. Check
+that reconnects stay quiet and the restored window keeps its previous size.
 
-2. Using the MinGW Installation Manager, install or ensure that the following packages are installed:
-	- mingw32-base
-	- mingw32-binutils
-	- mingw32-gcc
-	- mingw32-gcc-core-deps
-	- mingw32-gcc-g++
-	- mingw32-libatomic
-	- mingw32-libgcc
-	- mingw32-w32api
-	- msys-base
-	- msys-bash
-	- msys-core
-	- msys-make
+This fork removes legacy listbox fallback views, low-color icon/bitmap variants,
+and duplicate NT 3.x dialogs. It retains the shared API/thread/network wrappers
+required by the bundled dependencies. Typing animation stops while hidden or
+minimized, but expiry and connection maintenance continue. The typing indicator
+also releases temporary text buffers and expires each user after ten seconds.
 
-3. Ensure that both the MinGW `bin/` AND msys `bin/` directories are in your `PATH`.
-
-4. Set `OPENSSL_DIR` in your environment variables to your OpenSSL library directory.
-
-If you wish to use Shining Light Productions' distribution of OpenSSL-Win32, copy the
-`%OPENSSL_INSTALL%/include` and `%OPENSSL_INSTALL%/lib/MinGW` directories to a new folder
-that you assign as `OPENSSL_DIR`, then make sure that your MinGW libraries are actually
-in the root of that new folder!
-
-If you want compatibility on Windows versions which don't support the Microsoft Visual Studio 2015
-runtimes (VCRUNTIME140.DLL), then you will need to compile OpenSSL yourself.  See the section on
-[Compiling OpenSSL for older Windows versions](#compiling-openssl-for-older-windows-versions)
-section.
-
-5. Run the `make IS_MINGW_ON_WINDOWS=yes DISABLE_WEBP=yes` command.
-
-6. Enjoy!
+Compilation and the portable checks do not establish live Windows 8.1 readiness.
 
 ## Features
 ### Implemented
@@ -226,40 +211,6 @@ section.
 7. Action is weighted by Discord's anti-spam measures. It could cause the target to get autobanned.
 
 8. Some code already exists, but this feature is unfinished and will probably never be finished.
-
-## Compiling OpenSSL for older Windows versions
-
-You will need to use the `mingw-w64` (not the original one as this project wanted once upon a time).
-Start by cloning the OpenSSL repo found at the following link: https://github.com/DiscordMessenger/openssl.git.
-
-Then, run the `./buildit` command.
-
-To use the final libraries and DLLs when compiling Discord Messenger, use `[OpenSSL repo root]` as your `OPENSSL_DIR`.
-
-## Running on Windows NT 3.x and Windows 9x
-
-**NOTE: You do not need to follow these steps if you don't intend on running
-Discord Messenger on these versions of Windows.**
-
-You will need to use the mingw-w64 Pentium toolchain described in the [Pentium Toolchain Build Guide](doc/pentium-toolchain/README.md)),
-which additionally provides patches for compatibility with Windows NT 3.x / 9x.
-
-One more thing, you must byte patch DiscordMessenger.exe to report a minimum subsystem version of
-3.10 (as opposed to 4.0).  The subsystem version is typically located at offset 0xC8 or 200
-(**make sure to check if the bytes match `04 00 00 00`**).  Overwrite it with the following byte
-string: `03 00 0A 00`. Then, save.
-
-## Short File Names
-
-If you are planning to run Discord Messenger from a FAT partition on a Windows OS that does not support
-LFNs (Windows NT 3.1, 3.5, and Windows 95 betas), then you will need to edit the final executable and its
-DLLs to use SFN versions thereof.
-
-- `libcrypto-3.dll` -> `libcrypt.dll`
-- `libssl-3.dll` -> `libssl.dll`
-
-You can use a hex editor for this purpose or you can use CFF Explorer.  These changes must be applied to
-`DiscordMessenger.exe` *and* `libssl-3.dll`. Also, make sure to rename the libcrypto and libssl DLLs.
 
 ## Attributions
 

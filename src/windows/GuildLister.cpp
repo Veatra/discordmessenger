@@ -754,13 +754,13 @@ void GuildLister::Paint(HWND hWnd, HDC hdc, RECT& rcPaint)
 				
 		if (sf == 0)
 		{
-			int id = NT31SimplifiedInterface() ? IDB_DEFAULT_4BPP : IDB_DEFAULT;
+			int id = IDB_DEFAULT;
 			loadedByLoadBitmap = true;
 			hbm = LoadBitmap(g_hInstance, MAKEINTRESOURCE(id));
 		}
 		else if (avatarlnk.empty())
 		{
-			int id = NT31SimplifiedInterface() ? IDB_EMPTY_4BPP : IDB_EMPTY;
+			int id = IDB_EMPTY;
 			loadedByLoadBitmap = true;
 			hbm = LoadBitmap(g_hInstance, MAKEINTRESOURCE(id));
 			textOver = MakeIconStringFromName(name);

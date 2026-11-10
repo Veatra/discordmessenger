@@ -23,6 +23,12 @@ jobs:
       - name: Install Compiler Tools
         run: sudo apt install mingw-w64 gcc-mingw-w64-x86-64-posix g++-mingw-w64-x86-64-posix
       
+      - name: Test Typing Indicator Logic
+        run: |
+          g++ -std=c++11 -Wall -Wextra -Isrc/core tests/typing_expiry.cpp -o /tmp/dm-typing-expiry
+          /tmp/dm-typing-expiry
+          python3 tests/status_bar_timers.py
+
       - name: Download OpenSSL
         run: |
           curl -Lo "openssl-stuff.zip" https://github.com/DiscordMessenger/openssl/releases/download/release-2/openssl-stuff.zip

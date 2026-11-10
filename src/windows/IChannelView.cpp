@@ -1,19 +1,12 @@
 #include "IChannelView.hpp"
 #include "ChannelView.hpp"
-#include "ChannelViewOld.hpp"
 
 IChannelView* IChannelView::CreateChannelView(HWND hwnd, LPRECT rect)
 {
-	IChannelView* pChView = ChannelView::Create(hwnd, rect);
-
-	if (!pChView)
-		pChView = ChannelViewOld::Create(hwnd, rect);
-
-	return pChView;
+	return ChannelView::Create(hwnd, rect);
 }
 
 void IChannelView::InitializeClasses()
 {
 	ChannelView::InitializeClass();
-	ChannelViewOld::InitializeClass();
 }
