@@ -1,4 +1,5 @@
 #include "Theme.hpp"
+#include "ScrollGeometry.hpp"
 #include "GuildLister.hpp"
 #include "DoubleBufferingHelper.hpp"
 #include "config/LocalSettings.hpp"
@@ -7,7 +8,7 @@
 #define C_GUILD_GAP_HEIGHT 5
 
 #if GUILD_LISTER_BORDER
-# define GUILD_LISTER_COLOR COLOR_SCROLLBAR
+# define GUILD_LISTER_COLOR (IsDarkTheme() ? COLOR_WINDOW : COLOR_SCROLLBAR)
 #else
 # define GUILD_LISTER_COLOR COLOR_3DFACE
 #endif
@@ -58,7 +59,7 @@ void GuildLister::ProperlyResizeSubWindows()
 	int buttonHeight = ScaleByDPI(24);
 
 	bool wasScrollBarVisible = m_bIsScrollBarVisible;
-	m_bIsScrollBarVisible = rect.right - rect.left > g_GuildListerWidth;
+	m_bIsScrollBarVisible = !IsDarkTheme() && rect.right - rect.left > g_GuildListerWidth;
 
 	if (wasScrollBarVisible != m_bIsScrollBarVisible) {
 		if (wasScrollBarVisible) {
@@ -81,8 +82,9 @@ void GuildLister::ProperlyResizeSubWindows()
 	int buttonWidth = (rect.right - rect.left) / 2;
 
 	if (m_more_btn_hwnd) {
-		MoveWindow(m_more_btn_hwnd, rect.left, rect.bottom - buttonHeight, buttonWidth, buttonHeight, true);
-		MoveWindow(m_bar_btn_hwnd,  rect.right - buttonWidth, rect.bottom - buttonHeight, buttonWidth, buttonHeight, true);
+		MoveWindow(m_more_btn_hwnd, rect.left, rect.bottom - buttonHeight, m_bar_btn_hwnd ? buttonWidth : rect.right - rect.left, buttonHeight, true);
+		if (m_bar_btn_hwnd)
+			MoveWindow(m_bar_btn_hwnd, rect.right - buttonWidth, rect.bottom - buttonHeight, buttonWidth, buttonHeight, true);
 	}
 	else {
 		MoveWindow(m_bar_btn_hwnd, rect.left, rect.bottom - buttonHeight, rect.right - rect.left, buttonHeight, true);
@@ -196,13 +198,13 @@ void GuildLister::UpdateSelected()
 
 	auto it = m_iconRects.find(m_selectedGuild);
 	if (it != m_iconRects.end()) {
-		InvalidateRect(m_hwnd, &it->second, FALSE);
+		InvalidateRect(m_scrollable_hwnd, &it->second, FALSE);
 	}
 
 	m_selectedGuild = GetDiscordInstance()->GetCurrentGuildID();
 	it = m_iconRects.find(m_selectedGuild);
 	if (it != m_iconRects.end()) {
-		InvalidateRect(m_hwnd, &it->second, FALSE);
+		InvalidateRect(m_scrollable_hwnd, &it->second, FALSE);
 	}
 }
 
@@ -268,19 +270,13 @@ void GuildLister::SetScrollInfo(SCROLLINFO* pInfo, bool redraw)
 
 	if (pInfo->fMask & SIF_PAGE) {
 		si.nPage = pInfo->nPage;
-		if (si.nPage < 0) si.nPage = 0;
-		if (si.nPage > (UINT)(si.nMax - si.nMin + 1)) si.nPage = (UINT)(si.nMax - si.nMin + 1);
+		si.nPage = (UINT)std::min(int64_t(si.nPage), std::max(int64_t(0), int64_t(si.nMax) - si.nMin + 1));
 	}
 
-	if (pInfo->fMask & SIF_POS) {
-		int& pos = m_simulatedScrollInfo.nPos;
-		pos = pInfo->nPos;
-
-		if (pos < si.nMin)
-			pos = si.nMin;
-		if (pos > si.nMax - (int) std::max(si.nPage - 1, 0U))
-			pos = si.nMax - (int) std::max(si.nPage - 1, 0U);
-	}
+	if (pInfo->fMask & SIF_POS) si.nPos = pInfo->nPos;
+	if (pInfo->fMask & SIF_TRACKPOS) si.nTrackPos = pInfo->nTrackPos;
+	si.nPos = ScrollGeometry::Clamp(si.nPos, si.nMin, si.nMax, si.nPage);
+	si.nTrackPos = ScrollGeometry::Clamp(si.nTrackPos, si.nMin, si.nMax, si.nPage);
 }
 
 void GuildLister::SaveScrollInfo()
@@ -441,7 +437,9 @@ void GuildLister::AskLeave(Snowflake guild)
 
 void GuildLister::RedrawIconForGuild(Snowflake guild)
 {
-	InvalidateRect(m_hwnd, &m_iconRects[guild], !ShouldUseDoubleBuffering());
+	auto it = m_iconRects.find(guild);
+	if (it != m_iconRects.end())
+		InvalidateRect(m_scrollable_hwnd, &it->second, !ShouldUseDoubleBuffering());
 }
 
 LRESULT CALLBACK GuildLister::ParentWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -676,6 +674,7 @@ void GuildLister::Paint(HWND hWnd, HDC hdc, RECT& rcPaint)
 {	
 	RECT rect = {};
 	GetClientRect(hWnd, &rect);
+	if (IsDarkTheme()) FillRect(hdc, &rcPaint, ThemeBrush(COLOR_WINDOW));
 
 	SCROLLINFO si;
 	si.cbSize = sizeof(si);
@@ -738,6 +737,15 @@ void GuildLister::Paint(HWND hWnd, HDC hdc, RECT& rcPaint)
 			continue;
 		}
 
+		// Off-screen servers need no avatar lookup, bitmap allocation or channel
+		// mention scan. Keep folder traversal and the same scroll geometry.
+		int stride = ScaleByDPI(PROFILE_PICTURE_SIZE_DEF + 12);
+		if (IsDarkTheme() && (y + stride + ScaleByDPI(16) < rect.top || y - ScaleByDPI(16) > rect.bottom)) {
+			m_iconRects.erase(sf);
+			y += stride;
+			continue;
+		}
+
 		bool isLastItem = false;
 		if (i == sfs.size() - 1 || (sfs[i + 1] & BIT_FOLDER))
 			isLastItem = true;
@@ -788,6 +796,93 @@ void GuildLister::Paint(HWND hWnd, HDC hdc, RECT& rcPaint)
 	//	FillRect(hdc, &finalRect, ThemeBrush(GUILD_LISTER_COLOR));
 
 	MoveToEx(hdc, pt.x, pt.y, NULL);
+	if (IsDarkTheme()) PaintScrollIndicator(hdc);
+}
+
+void GuildLister::ScrollPixels(int amount)
+{
+	if (!m_scrollable_hwnd) return;
+	if (!IsDarkTheme()) { WindowScroll(m_scrollable_hwnd, amount); return; }
+	RECT view{};
+	GetClientRect(m_scrollable_hwnd, &view);
+	RECT gutter = view;
+	gutter.left = view.right - ScaleByDPI(8);
+	view.right = gutter.left;
+	// Never scroll the indicator's pixels with the server icons.
+	ScrollWindowEx(m_scrollable_hwnd, 0, -amount, &view, &view, NULL, NULL, SW_INVALIDATE);
+	InvalidateRect(m_scrollable_hwnd, &gutter, FALSE);
+	UpdateWindow(m_scrollable_hwnd);
+}
+
+void GuildLister::ScrollTo(int position)
+{
+	SCROLLINFO si{};
+	si.cbSize = sizeof(si); si.fMask = SIF_POS;
+	si.nPos = position;
+	SetScrollInfo(&si, false); GetScrollInfo(&si);
+	int amount = si.nPos - m_oldPos; m_oldPos = si.nPos;
+	if (amount) ScrollPixels(amount);
+	if (!m_scrollDragging) UpdateTooltips();
+}
+
+void GuildLister::PaintScrollIndicator(HDC dc)
+{
+	RECT view{}; GetClientRect(m_scrollable_hwnd, &view);
+	SCROLLINFO si{}; si.cbSize = sizeof(si); si.fMask = SIF_ALL; GetScrollInfo(&si);
+	auto thumb = ScrollGeometry::Calculate(view.bottom - ScaleByDPI(4), si.nMin, si.nMax, si.nPage, si.nPos, ScaleByDPI(24));
+	RECT gutter = view; gutter.left = view.right - ScaleByDPI(8);
+	FillRect(dc, &gutter, ThemeBrush(COLOR_WINDOW));
+	if (!thumb.length) return;
+	RECT mark = {view.right - ScaleByDPI(6), ScaleByDPI(2) + thumb.start, view.right - ScaleByDPI(2), ScaleByDPI(2) + thumb.start + thumb.length};
+	COLORREF old = SetDCBrushColor(dc, m_scrollDragging ? ThemePalette::Accent : ThemePalette::ScrollThumb);
+	FillRect(dc, &mark, (HBRUSH)GetStockObject(DC_BRUSH));
+	SetDCBrushColor(dc, old);
+}
+
+bool GuildLister::ScrollIndicatorInput(UINT message, WPARAM wParam, LPARAM lParam)
+{
+	if (!m_scrollable_hwnd) return false;
+	if (message == WM_CAPTURECHANGED || message == WM_CANCELMODE) {
+		if (m_scrollDragging) {
+			m_scrollDragging = false;
+			if (GetCapture() == m_scrollable_hwnd) ReleaseCapture();
+			InvalidateRect(m_scrollable_hwnd, NULL, FALSE);
+			UpdateTooltips();
+		}
+		return false;
+	}
+	if (message == WM_KEYDOWN) {
+		int command = -1;
+		switch (wParam) {
+			case VK_HOME: command = SB_TOP; break;
+			case VK_END: command = SB_BOTTOM; break;
+			case VK_PRIOR: command = SB_PAGEUP; break;
+			case VK_NEXT: command = SB_PAGEDOWN; break;
+			case VK_UP: command = SB_LINEUP; break;
+			case VK_DOWN: command = SB_LINEDOWN; break;
+		}
+		if (command < 0) return false;
+		SendMessage(m_scrollable_hwnd, WM_VSCROLL, command, 0); return true;
+	}
+	if (message == WM_LBUTTONUP && m_scrollDragging) {
+		m_scrollDragging = false; ReleaseCapture();
+		InvalidateRect(m_scrollable_hwnd, NULL, FALSE); UpdateTooltips(); return true;
+	}
+	if (message != WM_LBUTTONDOWN && !(message == WM_MOUSEMOVE && m_scrollDragging)) return false;
+	RECT view{}; GetClientRect(m_scrollable_hwnd, &view);
+	SCROLLINFO si{}; si.cbSize = sizeof(si); si.fMask = SIF_ALL; GetScrollInfo(&si);
+	auto thumb = ScrollGeometry::Calculate(view.bottom - ScaleByDPI(4), si.nMin, si.nMax, si.nPage, si.nPos, ScaleByDPI(24));
+	if (message == WM_LBUTTONDOWN) {
+		if (!thumb.length || GET_X_LPARAM(lParam) < view.right - ScaleByDPI(8)) return false;
+		int y = GET_Y_LPARAM(lParam) - ScaleByDPI(2);
+		m_scrollGrab = y >= thumb.start && y < thumb.start + thumb.length ? y - thumb.start : thumb.length / 2;
+		SendMessage(m_tooltip_hwnd, TTM_POP, 0, 0);
+		m_scrollDragging = true; SetFocus(m_scrollable_hwnd); SetCapture(m_scrollable_hwnd);
+		RECT gutter = view; gutter.left = view.right - ScaleByDPI(8);
+		InvalidateRect(m_scrollable_hwnd, &gutter, FALSE);
+	}
+	ScrollTo(thumb.Position(GET_Y_LPARAM(lParam) - ScaleByDPI(2), m_scrollGrab));
+	return true;
 }
 
 LRESULT CALLBACK GuildLister::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -795,6 +890,7 @@ LRESULT CALLBACK GuildLister::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 	SCROLLINFO si{};
 	GuildLister* pThis = (GuildLister*)GetWindowLongPtr(hWnd, GWLP_USERDATA);
 
+	if (pThis && IsDarkTheme() && pThis->ScrollIndicatorInput(uMsg, wParam, lParam)) return 0;
 	switch (uMsg)
 	{
 		case WM_NCCREATE:
@@ -802,6 +898,7 @@ LRESULT CALLBACK GuildLister::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 			CREATESTRUCT* strct = (CREATESTRUCT*)lParam;
 
 			SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR)strct->lpCreateParams);
+			((GuildLister*)strct->lpCreateParams)->m_scrollable_hwnd = hWnd;
 
 			break;
 		}
@@ -973,7 +1070,7 @@ LRESULT CALLBACK GuildLister::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 			diffUpDown = si.nPos - pThis->m_oldPos;
 			pThis->m_oldPos = si.nPos;
 
-			WindowScroll(hWnd, diffUpDown);
+			pThis->ScrollPixels(diffUpDown);
 			pThis->UpdateTooltips();
 			break;
 		}
@@ -1126,7 +1223,7 @@ LRESULT CALLBACK GuildLister::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 							diff = 0;
 					}
 
-					WindowScroll(hWnd, diff);
+					pThis->ScrollPixels(diff);
 					pThis->UpdateTooltips();
 
 					pThis->GetScrollInfo(&si);
@@ -1199,7 +1296,7 @@ LRESULT CALLBACK GuildLister::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 		}
 		case WM_SIZE:
 		{
-			WindowScroll(hWnd, pThis->UpdateScrollBar(true));
+			pThis->ScrollPixels(pThis->UpdateScrollBar(true));
 			pThis->UpdateTooltips();
 			break;
 		}
@@ -1408,7 +1505,7 @@ GuildLister* GuildLister::Create(HWND hwnd, LPRECT pRect)
 
 	{
 		newThis->m_more_btn_hwnd = CreateWindow(
-			WC_BUTTON, TEXT(""), BS_PUSHBUTTON | BS_ICON | WS_CHILD | WS_VISIBLE,
+			WC_BUTTON, TEXT("Servers"), BS_PUSHBUTTON | BS_ICON | WS_CHILD | WS_VISIBLE,
 			0, 0, 1, 1, newThis->m_hwnd, (HMENU)GCMD_MORE, g_hInstance, NULL
 		);
 	}
@@ -1416,7 +1513,8 @@ GuildLister* GuildLister::Create(HWND hwnd, LPRECT pRect)
 	LPCTSTR barText = TEXT("");
 	int ic = BS_ICON;
 
-	newThis->m_bar_btn_hwnd = CreateWindow(
+	// Dark mode always has a slim indicator; a second scrollbar toggle is redundant.
+	if (!IsDarkTheme()) newThis->m_bar_btn_hwnd = CreateWindow(
 		WC_BUTTON, barText, BS_PUSHBUTTON | ic | WS_CHILD | WS_VISIBLE,
 		0, 0, 1, 1, newThis->m_hwnd, (HMENU) GCMD_BAR, g_hInstance, NULL
 	);

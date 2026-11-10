@@ -33,6 +33,8 @@ jobs:
           python3 tests/bitmap_readback.py
           g++ -std=c++11 -Wall -Wextra -Isrc/windows tests/theme_palette.cpp -o /tmp/dm-theme-palette
           /tmp/dm-theme-palette
+          g++ -std=c++11 -Wall -Wextra -Isrc/windows tests/scroll_geometry.cpp -o /tmp/dm-scroll-geometry
+          /tmp/dm-scroll-geometry
 
       - name: Download OpenSSL
         run: |

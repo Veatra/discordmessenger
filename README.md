@@ -283,8 +283,24 @@ status controls. Photos and attachment images retain their original colors.
 The implementation uses documented Win32/GDI/common-controls APIs available on
 Windows 8.1, rather than Windows 10 dark-mode ordinals or registry assumptions.
 
-System title bars, menus, native message boxes, file pickers and scrollbars keep
-the Windows appearance; this avoids unsupported or partially themed OS dialogs.
+Dark appearance also supplies a flat caption with wider window buttons, dark
+menu bars/popups, borderless list panels and slightly tighter panel spacing.
+The server rail has a 4-pixel scroll indicator with an 8-pixel drag target
+(scaled with DPI); click its track or drag it, use the mouse wheel, or focus the
+rail and use arrows, Page Up/Down and Home/End. Its redundant scrollbar-toggle
+button is replaced by a wider server chooser. Off-screen server avatars and
+mention counts are skipped during painting, and tooltips are rebuilt after a
+thumb drag rather than on every pointer movement.
+
+Other list/tree/message scrollbars retain native tracking and hit targets with
+a slim painted thumb and dark gutter. Native menus remain attached: Alt/F10,
+mnemonics, enabled/checked commands and the system menu still use Windows menu
+handling. Native frame geometry, resizing, maximize/restore and caption dragging
+are preserved. Painting responds to window/input events; there are no added
+animation or polling timers. The caption uses the documented Vista+ DWM
+non-client rendering policy, without immersive dark-mode attributes.
+
+OS-owned message boxes and file pickers retain their Windows appearance.
 If Windows High Contrast is active when starting the app, the system palette
 wins over the dark preference. Restart after changing High Contrast while the
 app is running. UI theme changes also require restart so existing windows and
@@ -297,14 +313,26 @@ g++ -std=c++11 -Wall -Wextra -Isrc/windows tests/theme_palette.cpp -o /tmp/dm-th
 /tmp/dm-theme-palette
 ```
 
-`tests/theme_controls.cpp` is an offline Win32 fixture linking `Theme.cpp`.
-It checks native dialog colors and checkbox behavior and captures
+The portable scrollbar regression check covers empty/shrinking pages, dragging
+and large ranges:
+
+```sh
+g++ -std=c++11 -Wall -Wextra -Isrc/windows tests/scroll_geometry.cpp -o /tmp/dm-scroll-geometry
+/tmp/dm-scroll-geometry
+```
+
+`tests/theme_controls.cpp` is an offline Win32 fixture linking `Theme.cpp` and
+`ThemeChrome.cpp`. It checks dialog colors, checkbox behavior, native scrolling,
+caption hit targets/cancellation/minimize/maximize/restore, menu state/cleanup,
+GDI handle stability across 100 menu cycles and keyboard menu commands. It captures
 `theme-controls.bmp` in the working directory. Run it in separate processes for
-dark (default) and light (`light` argument). It does not load account data or
+dark (default) and light (`light` argument); `popup` captures an open dark popup
+instead of testing Alt+F. The keyboard test uses SendInput and needs the fixture
+to be foreground on an interactive desktop. It does not load account data or
 contact Discord; its icon-classification/drawing helpers are stubs, while its image-list test
 uses a generated black icon. The fixture can be built with
 MinGW using the same Windows version/Unicode defines and include paths as the
-application, linking `comctl32`, `uxtheme` and `gdi32`. Compile and link
+application, linking `comctl32`, `uxtheme`, `dwmapi` and `gdi32`. Compile and link
 `tests/theme_controls.rc` with windres too, so the fixture uses the same
 common-controls activation context as the app.
 

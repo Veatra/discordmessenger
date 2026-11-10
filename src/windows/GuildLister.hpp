@@ -27,6 +27,8 @@ public:
 	SCROLLINFO m_simulatedScrollInfo{};
 	int m_hackTrackPos = 0;
 	int m_oldPos = 0;
+	bool m_scrollDragging = false;
+	int m_scrollGrab = 0;
 
 	Snowflake m_rightClickedGuild = 0;
 	Snowflake m_selectedGuild = 0; // kept in store to ensure that things don't flicker too much
@@ -61,6 +63,10 @@ private:
 	void DrawServerIcon(HDC hdc, HBITMAP hicon, int& y, RECT& rect, Snowflake id, const std::string& textOver, bool hasAlpha, Snowflake currentFolder, bool isLastItem);
 	void Paint(HWND hWnd, HDC hdc, RECT& rcPaint);
 	int GetScrollableHeight();
+	void ScrollPixels(int amount);
+	void ScrollTo(int position);
+	void PaintScrollIndicator(HDC dc);
+	bool ScrollIndicatorInput(UINT message, WPARAM wParam, LPARAM lParam);
 
 public:
 	static WNDCLASS g_GuildListerParentClass;

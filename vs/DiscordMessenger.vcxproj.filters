@@ -527,6 +527,9 @@
     <ClInclude Include="..\src\core\network\DiscordAPI.hpp">
       <Filter>Header Files\Core\Network</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\core\utils\Diagnostics.hpp">
+      <Filter>Header Files\Core\Utils</Filter>
+    </ClInclude>
     <ClInclude Include="..\src\core\utils\Emoji.hpp">
       <Filter>Header Files\Core\Utils</Filter>
     </ClInclude>
@@ -541,6 +544,9 @@
     </ClInclude>
     <ClInclude Include="..\src\core\text\TextInterface.hpp">
       <Filter>Header Files\Core\Text</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\state\TypingExpiry.hpp">
+      <Filter>Header Files\Core\State</Filter>
     </ClInclude>
     <ClInclude Include="..\src\core\state\MessageCache.hpp">
       <Filter>Header Files\Core\State</Filter>
@@ -621,6 +627,12 @@
       <Filter>Header Files\Windows\Utils</Filter>
     </ClInclude>
     <ClInclude Include="..\src\windows\TextToSpeech.hpp">
+      <Filter>Header Files\Windows\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\windows\ScrollGeometry.hpp">
+      <Filter>Header Files\Windows\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\windows\ThemeChrome.hpp">
       <Filter>Header Files\Windows\Utils</Filter>
     </ClInclude>
     <ClInclude Include="..\src\windows\Theme.hpp">
@@ -733,6 +745,9 @@
     <ClCompile Include="..\src\core\network\WebsocketClient.cpp">
       <Filter>Source Files\Core\Network</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\core\utils\Diagnostics.cpp">
+      <Filter>Source Files\Core\Utils</Filter>
+    </ClCompile>
     <ClCompile Include="..\src\core\utils\Emoji.cpp">
       <Filter>Source Files\Core\Utils</Filter>
     </ClCompile>
@@ -842,6 +857,9 @@
       <Filter>Source Files\Windows\Utils</Filter>
     </ClCompile>
     <ClCompile Include="..\src\windows\TextManager.cpp">
+      <Filter>Source Files\Windows\Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\windows\ThemeChrome.cpp">
       <Filter>Source Files\Windows\Utils</Filter>
     </ClCompile>
     <ClCompile Include="..\src\windows\Theme.cpp">

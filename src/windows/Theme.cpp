@@ -1,4 +1,5 @@
 #include "Theme.hpp"
+#include "ThemeChrome.hpp"
 #include "WinUtils.hpp"
 #include <commctrl.h>
 #include <uxtheme.h>
@@ -248,6 +249,9 @@ LRESULT CALLBACK Created(int code, WPARAM w, LPARAM l) {
                 owned=procedure && GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS|GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
                     (LPCWSTR)procedure,&module) && module==instance;
             }
+            // Menu popup windows are created by USER32 on this UI thread.
+            // Keep their border/glyphs consistent with our owner-drawn items.
+            if (!_wcsicmp(name,L"#32768")) owned=ThemeMenuPopupActive();
             if (owned) {
                 ThemeWindow(event->hwnd);
                 if (event->message==WM_INITDIALOG)
@@ -330,6 +334,21 @@ void ThemeWindow(HWND window) {
     if (state->kind==Button && (GetWindowLongPtr(window,GWL_STYLE)&BS_TYPEMASK)==BS_GROUPBOX)
         SetWindowLongPtr(window,GWL_STYLE,GetWindowLongPtr(window,GWL_STYLE)|WS_CLIPSIBLINGS);
     SetWindowTheme(window,L"",L"");
+    // Flat panels: remove the native sunken frame without changing the control's
+    // data, focus, scroll position or keyboard handling.
+    LONG_PTR style=GetWindowLongPtr(window,GWL_STYLE);
+    LONG_PTR extended=GetWindowLongPtr(window,GWL_EXSTYLE);
+    if (style & WS_CHILD) {
+        LONG_PTR flat=extended & ~(WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
+        LONG_PTR flatStyle=style;
+        if (!_wcsicmp(name,WC_LISTVIEWW) || !_wcsicmp(name,WC_TREEVIEWW)) flatStyle &= ~WS_BORDER;
+        if (flat!=extended || flatStyle!=style) {
+            SetWindowLongPtr(window,GWL_EXSTYLE,flat);
+            SetWindowLongPtr(window,GWL_STYLE,flatStyle);
+            SetWindowPos(window,NULL,0,0,0,0,SWP_NOMOVE|SWP_NOSIZE|SWP_NOZORDER|SWP_NOACTIVATE|SWP_FRAMECHANGED);
+        }
+    }
+    ThemeChromeWindow(window);
     if (!_wcsicmp(name,WC_LISTVIEWW)) {
         ListView_SetBkColor(window,ThemePalette::Canvas);
         ListView_SetTextBkColor(window,ThemePalette::Canvas);

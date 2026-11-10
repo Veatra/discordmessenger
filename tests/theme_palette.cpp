@@ -17,6 +17,7 @@ int main() {
         assert(Contrast(Readable(color,Canvas),Canvas)>=4.5);
         assert(Contrast(Readable(color,Selection),Selection)>=4.5);
     }
+    assert(Contrast(ScrollThumb,Canvas)>=3.0);
     assert(Readable(Text,Canvas)==Text); // preserve already readable colors
     puts("PASS: dark text/background pairs, links, selections, and 216 role colors");
 }

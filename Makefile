@@ -154,7 +154,7 @@ LDFLAGS = \
 	$(SSYSVER)     \
 	-mwindows      \
 	-lmswsock -lwsock32 -lcomctl32 -lgdi32 -luser32 -lole32 -lcrypt32 \
-	-lcrypto -lssl -luxtheme \
+	-lcrypto -lssl -luxtheme -ldwmapi \
 	$(EXTRA_FLAGS)
 
 # Optional WebP support

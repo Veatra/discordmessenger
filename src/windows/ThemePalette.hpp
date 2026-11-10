@@ -11,6 +11,7 @@ constexpr uint32_t Input = Rgb(23, 27, 33);
 constexpr uint32_t Text = Rgb(232, 236, 243);
 constexpr uint32_t Muted = Rgb(190, 200, 215);
 constexpr uint32_t Border = Rgb(81, 92, 109);
+constexpr uint32_t ScrollThumb = Rgb(116, 129, 149);
 constexpr uint32_t Hover = Rgb(51, 60, 73);
 constexpr uint32_t Selection = Rgb(53, 79, 119);
 constexpr uint32_t Accent = Rgb(147, 189, 255);

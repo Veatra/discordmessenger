@@ -251,7 +251,7 @@ void ProperlySizeControls(HWND hWnd)
 	int clientWidth = rect.right - rect.left;
 	rcClient = rect;
 
-	int scaled10 = ScaleByDPI(10);
+	int scaled10 = ScaleByDPI(IsDarkTheme() ? 8 : 10);
 
 	rect.left   += scaled10;
 	rect.top    += scaled10;
@@ -290,7 +290,7 @@ void ProperlySizeControls(HWND hWnd)
 
 	int guildListerWidth = g_GuildListerWidth;
 	int channelViewListWidth = g_ChannelViewListWidth;
-	if (GetLocalSettings()->ShowScrollBarOnGuildList()) {
+	if (!IsDarkTheme() && GetLocalSettings()->ShowScrollBarOnGuildList()) {
 		int offset = GetSystemMetrics(SM_CXVSCROLL);
 		guildListerWidth += offset;
 		channelViewListWidth -= offset;
@@ -313,7 +313,7 @@ void ProperlySizeControls(HWND hWnd)
 			- scaled10 * 2 /* Between channelview and messageview, between messageview and memberlist */
 			- g_GuildListerWidth2; /* The guild list itself. So just the channelview, messageview and memberlist summed */
 
-		int widthOfAll3ThingsAt800px = ScaleByDPI(694);
+		int widthOfAll3ThingsAt800px = minFullWidth - scaled10 * 5 - g_GuildListerWidth2;
 
 		g_ChannelViewListWidth2 = MulDiv(g_ChannelViewListWidth2, widthOfAll3Things, widthOfAll3ThingsAt800px);
 		g_MemberListWidth       = MulDiv(g_MemberListWidth,       widthOfAll3Things, widthOfAll3ThingsAt800px);
@@ -1374,14 +1374,13 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			if (wParam == SIZE_MINIMIZED)
 				break;
 
-			int width = LOWORD(lParam);
-			int height = HIWORD(lParam);
-
-			RECT r{ 0, 0, width, height };
-			AdjustWindowRect(&r, WS_OVERLAPPEDWINDOW, FALSE);
-
-			// Save the new size
-			GetLocalSettings()->SetWindowSize(r.right - r.left, r.bottom - r.top);
+			// Persist actual restore bounds, including the menu and frame. Computing
+			// them from client metrics caused size drift (especially with dark menus).
+			if (wParam == SIZE_RESTORED) {
+				RECT r{};
+				GetWindowRect(hWnd, &r);
+				GetLocalSettings()->SetWindowSize(r.right - r.left, r.bottom - r.top);
+			}
 			GetLocalSettings()->SetMaximized(wParam == SIZE_MAXIMIZED);
 
 			ProfilePopout::Dismiss();
