@@ -1,3 +1,4 @@
+#include "Theme.hpp"
 #include "ProfileView.hpp"
 
 #define PROFILE_VIEW_COLOR  COLOR_3DFACE
@@ -107,16 +108,16 @@ void ProfileView::Paint(HDC hdc)
 
 	RECT rcProfile = rect;
 	rcProfile.right = pfpX + pfpBorderSize - ScaleByDPI(6);
-	FillRect(hdc, &rcProfile, ri::GetSysColorBrush(PROFILE_VIEW_COLOR));
+	FillRect(hdc, &rcProfile, ThemeBrush(PROFILE_VIEW_COLOR));
 
-	ri::DrawIconEx(hdc, pfpX - ScaleByDPI(6), pfpY - ScaleByDPI(4), g_ProfileBorderIcon, pfpBorderSizeDrawn, pfpBorderSizeDrawn, 0, NULL, DI_NORMAL | DI_COMPAT);
+	ThemeDrawIconEx(hdc, pfpX - ScaleByDPI(6), pfpY - ScaleByDPI(4), g_ProfileBorderIcon, pfpBorderSizeDrawn, pfpBorderSizeDrawn, 0, NULL, DI_NORMAL | DI_COMPAT);
 
 	DrawBitmap(hdc, hbm, pfpX, pfpY, NULL, CLR_NONE, pfpSize, 0, hasAlpha);
 
 	DrawActivityStatus(hdc, pfpX, pfpY, activeStatus);
 
-	COLORREF clrOld = SetBkColor(hdc, GetSysColor(PROFILE_VIEW_COLOR));
-	COLORREF cltOld = SetTextColor(hdc, GetSysColor(COLOR_MENUTEXT));
+	COLORREF clrOld = SetBkColor(hdc, ThemeColor(PROFILE_VIEW_COLOR));
+	COLORREF cltOld = SetTextColor(hdc, ThemeColor(COLOR_MENUTEXT));
 	HGDIOBJ objOld = SelectObject(hdc, g_AccountInfoFont);
 
 	RECT rcText = rect;
@@ -138,7 +139,7 @@ void ProfileView::Paint(HDC hdc)
 		int size = GetSystemMetrics(SM_CXSMICON);
 
 		HICON hic = (HICON) ri::LoadImage(g_hInstance, MAKEINTRESOURCE(DMIC(IDI_BOT)), IMAGE_ICON, size, size, LR_SHARED | LR_CREATEDIBSECTION);
-		ri::DrawIconEx(hdc, rcText.left + offset, rcText.top + (rcMeasure.bottom - rcMeasure.top - size) / 2, hic, size, size, 0, NULL, DI_COMPAT | DI_NORMAL);
+		ThemeDrawIconEx(hdc, rcText.left + offset, rcText.top + (rcMeasure.bottom - rcMeasure.top - size) / 2, hic, size, size, 0, NULL, DI_COMPAT | DI_NORMAL);
 	}
 
 	if (freeNameAndUserName) {
@@ -191,7 +192,7 @@ void ProfileView::InitializeClass()
 	WNDCLASS& wc = g_ProfileViewClass;
 
 	wc.lpszClassName = T_PROFILE_VIEW_CLASS;
-	wc.hbrBackground = ri::GetSysColorBrush(PROFILE_VIEW_COLOR);
+	wc.hbrBackground = ThemeBrush(PROFILE_VIEW_COLOR);
 	wc.style         = 0;
 	wc.hCursor       = LoadCursor(0, IDC_ARROW);
 	wc.lpfnWndProc   = ProfileView::WndProc;

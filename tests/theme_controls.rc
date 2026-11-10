@@ -1,0 +1,2 @@
+// Use the same common-controls activation context as the application.
+1 24 "../res/app.manifest"

@@ -1,3 +1,4 @@
+#include "Theme.hpp"
 #include "ChannelView.hpp"
 #include <tchar.h>
 
@@ -63,15 +64,15 @@ bool ChannelView::InitTreeView()
 	}
 
 	// Add the open file, closed file, and document bitmaps.
-	m_nCategoryExpandIcon   = ri::ImageList_AddIcon(himl, LoadIcon(g_hInstance, MAKEINTRESOURCE(DMIC(IDI_CATEGORY_EXPAND))));
-	m_nCategoryCollapseIcon = ri::ImageList_AddIcon(himl, LoadIcon(g_hInstance, MAKEINTRESOURCE(DMIC(IDI_CATEGORY_COLLAPSE))));
-	m_nChannelIcon    = ri::ImageList_AddIcon(himl, LoadIcon(g_hInstance, MAKEINTRESOURCE(DMIC(IDI_CHANNEL))));
-	m_nForumIcon      = ri::ImageList_AddIcon(himl, LoadIcon(g_hInstance, MAKEINTRESOURCE(DMIC(IDI_GROUPDM))));
-	m_nVoiceIcon      = ri::ImageList_AddIcon(himl, LoadIcon(g_hInstance, MAKEINTRESOURCE(DMIC(IDI_VOICE))));
-	m_nDmIcon         = ri::ImageList_AddIcon(himl, LoadIcon(g_hInstance, MAKEINTRESOURCE(DMIC(IDI_DM))));
-	m_nGroupDmIcon    = ri::ImageList_AddIcon(himl, LoadIcon(g_hInstance, MAKEINTRESOURCE(DMIC(IDI_GROUPDM))));
-	m_nChannelDotIcon = ri::ImageList_AddIcon(himl, LoadIcon(g_hInstance, MAKEINTRESOURCE(DMIC(IDI_CHANNEL_UNREAD))));
-	m_nChannelRedIcon = ri::ImageList_AddIcon(himl, LoadIcon(g_hInstance, MAKEINTRESOURCE(DMIC(IDI_CHANNEL_MENTIONED))));
+	m_nCategoryExpandIcon   = ThemeImageListAddIcon(himl, LoadIcon(g_hInstance, MAKEINTRESOURCE(DMIC(IDI_CATEGORY_EXPAND))));
+	m_nCategoryCollapseIcon = ThemeImageListAddIcon(himl, LoadIcon(g_hInstance, MAKEINTRESOURCE(DMIC(IDI_CATEGORY_COLLAPSE))));
+	m_nChannelIcon    = ThemeImageListAddIcon(himl, LoadIcon(g_hInstance, MAKEINTRESOURCE(DMIC(IDI_CHANNEL))));
+	m_nForumIcon      = ThemeImageListAddIcon(himl, LoadIcon(g_hInstance, MAKEINTRESOURCE(DMIC(IDI_GROUPDM))));
+	m_nVoiceIcon      = ThemeImageListAddIcon(himl, LoadIcon(g_hInstance, MAKEINTRESOURCE(DMIC(IDI_VOICE))));
+	m_nDmIcon         = ThemeImageListAddIcon(himl, LoadIcon(g_hInstance, MAKEINTRESOURCE(DMIC(IDI_DM))));
+	m_nGroupDmIcon    = ThemeImageListAddIcon(himl, LoadIcon(g_hInstance, MAKEINTRESOURCE(DMIC(IDI_GROUPDM))));
+	m_nChannelDotIcon = ThemeImageListAddIcon(himl, LoadIcon(g_hInstance, MAKEINTRESOURCE(DMIC(IDI_CHANNEL_UNREAD))));
+	m_nChannelRedIcon = ThemeImageListAddIcon(himl, LoadIcon(g_hInstance, MAKEINTRESOURCE(DMIC(IDI_CHANNEL_MENTIONED))));
 
 	// Fail if not all of the images were added.
 	int ic = ri::ImageList_GetImageCount(himl);
@@ -510,7 +511,7 @@ void ChannelView::InitializeClass()
 	WNDCLASS& wc = g_ChannelViewClass;
 
 	wc.lpszClassName = T_CHANNEL_VIEW_CONTAINER_CLASS;
-	wc.hbrBackground = ri::GetSysColorBrush(COLOR_3DFACE);
+	wc.hbrBackground = ThemeBrush(COLOR_3DFACE);
 	wc.style = 0;
 	wc.hCursor = LoadCursor(0, IDC_ARROW);
 	wc.lpfnWndProc = &ChannelView::WndProc;
@@ -692,33 +693,33 @@ LRESULT ChannelView::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			ChannelMember* pMember = &pView->m_channels[lpdis->itemID];
 			Channel* pChan = GetDiscordInstance()->GetChannel(pMember->m_snowflake);
 
-			COLORREF nameTextColor = GetSysColor(COLOR_WINDOWTEXT);
-			COLORREF statusTextColor = GetSysColor(COLOR_GRAYTEXT);
-			COLORREF backgdColor = GetSysColor(COLOR_WINDOW);
+			COLORREF nameTextColor = ThemeColor(COLOR_WINDOWTEXT);
+			COLORREF statusTextColor = ThemeColor(COLOR_GRAYTEXT);
+			COLORREF backgdColor = ThemeColor(COLOR_WINDOW);
 			
 			if (pView->m_hotItem == lpdis->itemID)
 			{
-				FillRect(lpdis->hDC, &lpdis->rcItem, ri::GetSysColorBrush(COLOR_MENUBAR));
-				backgdColor = GetSysColor(COLOR_MENUBAR);
+				FillRect(lpdis->hDC, &lpdis->rcItem, ThemeBrush(COLOR_MENUBAR));
+				backgdColor = ThemeColor(COLOR_MENUBAR);
 			}
 			else
 			{
 				// Windows 2000 doesn't do automatic clearing
-				FillRect(lpdis->hDC, &lpdis->rcItem, ri::GetSysColorBrush(COLOR_WINDOW));
+				FillRect(lpdis->hDC, &lpdis->rcItem, ThemeBrush(COLOR_WINDOW));
 			}
 			
 			if (lpdis->itemState & ODS_SELECTED)
 			{
-				FillRect(lpdis->hDC, &lpdis->rcItem, ri::GetSysColorBrush(COLOR_HIGHLIGHT));
-				backgdColor     = GetSysColor(COLOR_HIGHLIGHT);
-				nameTextColor   = GetSysColor(COLOR_HIGHLIGHTTEXT);
-				statusTextColor = GetSysColor(COLOR_HIGHLIGHTTEXT);
+				FillRect(lpdis->hDC, &lpdis->rcItem, ThemeBrush(COLOR_HIGHLIGHT));
+				backgdColor     = ThemeColor(COLOR_HIGHLIGHT);
+				nameTextColor   = ThemeColor(COLOR_HIGHLIGHTTEXT);
+				statusTextColor = ThemeColor(COLOR_HIGHLIGHTTEXT);
 			}
 
 			// draw profile picture frame
 			int sz = ScaleByDPI(PROFILE_PICTURE_SIZE_DEF + 12);
 			int szDraw = GetProfileBorderSize();
-			ri::DrawIconEx(hdc, rcItem.left, rcItem.top, g_ProfileBorderIcon, szDraw, szDraw, 0, NULL, DI_NORMAL | DI_COMPAT);
+			ThemeDrawIconEx(hdc, rcItem.left, rcItem.top, g_ProfileBorderIcon, szDraw, szDraw, 0, NULL, DI_NORMAL | DI_COMPAT);
 			
 			// draw profile picture
 			bool hasAlpha = false;

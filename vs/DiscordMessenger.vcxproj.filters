@@ -623,6 +623,12 @@
     <ClInclude Include="..\src\windows\TextToSpeech.hpp">
       <Filter>Header Files\Windows\Utils</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\windows\Theme.hpp">
+      <Filter>Header Files\Windows\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\windows\ThemePalette.hpp">
+      <Filter>Header Files\Windows\Utils</Filter>
+    </ClInclude>
     <ClInclude Include="..\src\windows\WinUtils.hpp">
       <Filter>Header Files\Windows\Utils</Filter>
     </ClInclude>
@@ -836,6 +842,9 @@
       <Filter>Source Files\Windows\Utils</Filter>
     </ClCompile>
     <ClCompile Include="..\src\windows\TextManager.cpp">
+      <Filter>Source Files\Windows\Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\windows\Theme.cpp">
       <Filter>Source Files\Windows\Utils</Filter>
     </ClCompile>
     <ClCompile Include="..\src\windows\WinUtils.cpp">

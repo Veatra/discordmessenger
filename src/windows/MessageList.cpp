@@ -1,3 +1,4 @@
+#include "Theme.hpp"
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <shellapi.h>
@@ -12,7 +13,7 @@
 
 #define STRAVAILABLE(str) ((str) && (str)[0] != 0)
 
-#define NEW_MARKER_COLOR RGB(255,0,0)
+#define NEW_MARKER_COLOR (IsDarkTheme() ? ThemePalette::Warning : RGB(255,0,0))
 
 #define ATTACHMENT_HEIGHT (ScaleByDPI(40))
 #define ATTACHMENT_GAP    (ScaleByDPI(4))
@@ -59,7 +60,7 @@ static const int g_WelcomeTextCount = _countof(g_WelcomeTextIds);
 
 MessageList::MessageList()
 {
-	m_defaultBackgroundBrush = ri::GetSysColorBrush(COLOR_WINDOW);
+	m_defaultBackgroundBrush = ThemeBrush(COLOR_WINDOW);
 
 	// This ugly hack allows me to calculate the offset between GMT and
 	// local time.  This is used when calculating date gaps.
@@ -86,9 +87,9 @@ MessageList::~MessageList()
 		m_backgroundImage = NULL;
 	}
 
-	if (m_backgroundBrush)
+	if (m_backgroundBrush && !m_bDontDeleteBackgroundBrush)
 	{
-		DeleteBitmap(m_backgroundBrush);
+		DeleteBrush(m_backgroundBrush);
 		m_backgroundBrush = NULL;
 	}
 }
@@ -277,7 +278,7 @@ void RichEmbedItem::Draw(HDC hdc, RECT& messageRect, MessageList* pList)
 	rcGradient.left += ScaleByDPI(4);
 	COLORREF oldColor = SetBkColor(hdc, pList->GetDarkerBackgroundColor());
 	if (GetLocalSettings()->GetMessageStyle() == MS_GRADIENT) {
-		FillGradientColors(hdc, &rcGradient, GetSysColor(COLOR_WINDOWFRAME), CLR_NONE, true);
+		FillGradientColors(hdc, &rcGradient, ThemeColor(COLOR_WINDOWFRAME), CLR_NONE, true);
 	}
 	else {
 		COLORREF oldClr = ri::SetDCBrushColor(hdc, pList->GetDarkerBackgroundColor());
@@ -299,7 +300,7 @@ void RichEmbedItem::Draw(HDC hdc, RECT& messageRect, MessageList* pList)
 	rc.right  -= borderSize;
 	rc.bottom -= borderSize;
 	HGDIOBJ oldObj = SelectObject(hdc, GetStockFont(ANSI_VAR_FONT));
-	COLORREF windowTextColor = pList->InvertIfNeeded(GetSysColor(COLOR_WINDOWTEXT));
+	COLORREF windowTextColor = pList->InvertIfNeeded(ThemeColor(COLOR_WINDOWTEXT));
 
 	if (m_providerSize.cy) {
 		SelectObject(hdc, g_ReplyTextFont);
@@ -1535,9 +1536,9 @@ void MessageList::DrawDefaultAttachment(HDC hdc, RECT& paintRect, AttachmentItem
 
 	COLORREF old = CLR_NONE;
 	if (attachItem.m_bHighlighted && inView)
-		old = SetTextColor(hdc, RGB(0, 0, 255));
+		old = SetTextColor(hdc, COLOR_LINK);
 	else
-		old = SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
+		old = SetTextColor(hdc, ThemeColor(COLOR_WINDOWTEXT));
 
 	LPCTSTR name = attachItem.m_nameText;
 	RECT rcMeasure;
@@ -1558,9 +1559,9 @@ void MessageList::DrawDefaultAttachment(HDC hdc, RECT& paintRect, AttachmentItem
 
 	if (inView)
 	{
-		ri::DrawEdge(hdc, &childAttachRect, BDR_RAISEDINNER | BDR_RAISEDOUTER, BF_RECT | BF_MIDDLE);
+		ThemeDrawEdge(hdc, &childAttachRect, BDR_RAISEDINNER | BDR_RAISEDOUTER, BF_RECT | BF_MIDDLE);
 		DrawText(hdc, name, -1, &textRect, DT_NOPREFIX | DT_NOCLIP);
-		ri::DrawIconEx(
+		ThemeDrawIconEx(
 			hdc,
 			childAttachRect.left + 4,
 			childAttachRect.top + rectHeight / 2 - iconSize / 2,
@@ -1575,7 +1576,7 @@ void MessageList::DrawDefaultAttachment(HDC hdc, RECT& paintRect, AttachmentItem
 
 	attachItem.m_textRect = textRect;
 
-	uint32_t oc = SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
+	uint32_t oc = SetTextColor(hdc, ThemeColor(COLOR_WINDOWTEXT));
 	if (old == CLR_NONE)
 		old = oc;
 
@@ -1600,7 +1601,7 @@ void MessageList::DrawDefaultAttachment(HDC hdc, RECT& paintRect, AttachmentItem
 	
 	if (inView)
 	{
-		ri::DrawIconEx(hdc,
+		ThemeDrawIconEx(hdc,
 			dlIconX,
 			dlIconY,
 			(HICON) g_DownloadIcon,
@@ -1945,9 +1946,9 @@ void MessageList::ConfirmOpenLink(const std::string& link)
 
 COLORREF MessageList::DrawMentionBackground(HDC hdc, RECT& rc, COLORREF chosenBkColor)
 {
-	COLORREF colOrig = RGB(255, 232, 96);
-	COLORREF color  = LerpColor(chosenBkColor, RGB(255, 232, 96), 25, 100);
-	COLORREF color2 = LerpColor(chosenBkColor, RGB(255, 232, 96), 80, 100);
+	COLORREF colOrig = IsDarkTheme() ? ThemePalette::Selection : RGB(255, 232, 96);
+	COLORREF color  = LerpColor(chosenBkColor, colOrig, 25, 100);
+	COLORREF color2 = LerpColor(chosenBkColor, colOrig, 80, 100);
 
 	RECT rcLeft = rc;
 	rcLeft.right = rcLeft.left;
@@ -1978,11 +1979,11 @@ void MessageList::DrawReplyPieceIcon(HDC hdc, int leftX, int topY)
 {
 	if (g_ReplyPieceIcon) {
 		const int iconSize = ScaleByDPI(32);
-		ri::DrawIconEx(hdc, leftX, topY, g_ReplyPieceIcon, iconSize, iconSize, 0, NULL, DI_COMPAT | DI_NORMAL);
+		ThemeDrawIconEx(hdc, leftX, topY, g_ReplyPieceIcon, iconSize, iconSize, 0, NULL, DI_COMPAT | DI_NORMAL);
 		return;
 	}
 
-	HPEN hpen = CreatePen(PS_SOLID, 3, InvertIfNeeded(GetSysColor(COLOR_WINDOWTEXT)));
+	HPEN hpen = CreatePen(PS_SOLID, 3, InvertIfNeeded(ThemeColor(COLOR_WINDOWTEXT)));
 	HGDIOBJ old = SelectObject(hdc, hpen);
 
 	POINT ptold = {};
@@ -2030,7 +2031,7 @@ int MessageList::DrawMessageReply(HDC hdc, MessageItem& item, RECT& rc)
 
 		DrawReplyPieceIcon(hdc, rcReply.left + iconOffset, rcReply.bottom + ScaleByDPI(5) - iconSize);
 		if (g_ReplyPieceIcon)
-			ri::DrawIconEx(hdc, rcReply.left + iconOffset, rcReply.bottom + ScaleByDPI(5) - iconSize, g_ReplyPieceIcon, iconSize, iconSize, 0, NULL, DI_COMPAT | DI_NORMAL);
+			ThemeDrawIconEx(hdc, rcReply.left + iconOffset, rcReply.bottom + ScaleByDPI(5) - iconSize, g_ReplyPieceIcon, iconSize, iconSize, 0, NULL, DI_COMPAT | DI_NORMAL);
 
 		SelectClipRgn(hdc, NULL);
 		DeleteRgn(rgn);
@@ -2038,7 +2039,7 @@ int MessageList::DrawMessageReply(HDC hdc, MessageItem& item, RECT& rc)
 	else {
 		DrawReplyPieceIcon(hdc, rcReply.left + iconOffset, rcReply.bottom + ScaleByDPI(5) - iconSize);
 		if (g_ReplyPieceIcon)
-			ri::DrawIconEx(hdc, rcReply.left + iconOffset, rcReply.bottom + ScaleByDPI(5) - iconSize, g_ReplyPieceIcon, iconSize, iconSize, 0, NULL, DI_COMPAT | DI_NORMAL);
+			ThemeDrawIconEx(hdc, rcReply.left + iconOffset, rcReply.bottom + ScaleByDPI(5) - iconSize, g_ReplyPieceIcon, iconSize, iconSize, 0, NULL, DI_COMPAT | DI_NORMAL);
 	}
 
 	rcReply.left += offset2 + offset3;
@@ -2055,7 +2056,7 @@ int MessageList::DrawMessageReply(HDC hdc, MessageItem& item, RECT& rc)
 			int pfpX = rcReply.left;
 			int pfpY = rcReply.top + (rcReply.bottom - rcReply.top - pfpSize) / 2;
 			
-			ri::DrawIconEx(hdc, pfpX - pfpBordOffX, pfpY - pfpBordOffY, g_ProfileBorderIcon, pfpBordSize, pfpBordSize, 0, NULL, DI_COMPAT | DI_NORMAL);
+			ThemeDrawIconEx(hdc, pfpX - pfpBordOffX, pfpY - pfpBordOffY, g_ProfileBorderIcon, pfpBordSize, pfpBordSize, 0, NULL, DI_COMPAT | DI_NORMAL);
 			
 			bool hasAlpha = false;
 			GetAvatarCache()->AddImagePlace(refMsg.m_avatar, eImagePlace::AVATARS, refMsg.m_avatar, refMsg.m_author_snowflake);
@@ -2082,7 +2083,7 @@ int MessageList::DrawMessageReply(HDC hdc, MessageItem& item, RECT& rc)
 	}
 
 	if (nameClr == CLR_NONE)
-		nameClr = InvertIfNeeded(GetSysColor(COLOR_WINDOWTEXT));
+		nameClr = InvertIfNeeded(ThemeColor(COLOR_WINDOWTEXT));
 
 	LPCTSTR strPart1 = TEXT("");
 	LPCTSTR strPart2 = NULL;
@@ -2118,12 +2119,12 @@ int MessageList::DrawMessageReply(HDC hdc, MessageItem& item, RECT& rc)
 		int iconSize = MulDiv(ScaleByDPI(16), 8, 10); // 8/10ths is the ratio of the font too
 		int iconY = rcReply.top + (rcReply.bottom - rcReply.top) / 2 - iconSize / 2;
 		HICON hicon = LoadIcon(g_hInstance, MAKEINTRESOURCE(icon));
-		ri::DrawIconEx(hdc, rcReply.left, iconY, hicon, iconSize, iconSize, 0, NULL, DI_COMPAT | DI_NORMAL);
+		ThemeDrawIconEx(hdc, rcReply.left, iconY, hicon, iconSize, iconSize, 0, NULL, DI_COMPAT | DI_NORMAL);
 		rcReply.left += iconSize + ScaleByDPI(4);
 	}
 
 	// Draw the text
-	COLORREF old = SetTextColor(hdc, GetSysColor(COLOR_GRAYTEXT));
+	COLORREF old = SetTextColor(hdc, ThemeColor(COLOR_GRAYTEXT));
 	SelectObject(hdc, g_ReplyTextFont);
 	RECT rcMeasure{};
 
@@ -2145,7 +2146,7 @@ int MessageList::DrawMessageReply(HDC hdc, MessageItem& item, RECT& rc)
 	if (!isActionMessage)
 		rcReply.left += ScaleByDPI(5);
 
-	SetTextColor(hdc, GetSysColor(COLOR_GRAYTEXT));
+	SetTextColor(hdc, ThemeColor(COLOR_GRAYTEXT));
 
 	if (STRAVAILABLE(strPart2))
 	{
@@ -2220,9 +2221,9 @@ void MessageList::DrawMessage(HDC hdc, MessageItem& item, RECT& msgRect, RECT& c
 
 	bool isFlashed = (m_emphasizedMessage == item.m_msg->m_snowflake) && (m_flash_counter % 2 != 0);
 
-	COLORREF chosenTextColor = GetSysColor(COLOR_WINDOWTEXT);
+	COLORREF chosenTextColor = ThemeColor(COLOR_WINDOWTEXT);
 	if (item.m_msg->m_bRead)
-		chosenTextColor = GetSysColor(COLOR_3DSHADOW);
+		chosenTextColor = ThemeColor(IsDarkTheme() ? COLOR_GRAYTEXT : COLOR_3DSHADOW);
 
 	COLORREF textColor = InvertIfNeeded(chosenTextColor), bkgdColor = CLR_NONE;
 
@@ -2250,7 +2251,7 @@ void MessageList::DrawMessage(HDC hdc, MessageItem& item, RECT& msgRect, RECT& c
 
 		LPTSTR strDateGap = ConvertCppStringToTString("  " + item.m_msg->m_dateOnly + "  ");
 
-		COLORREF clrText = InvertIfNeeded(bDrawNewMarker ? NEW_MARKER_COLOR : GetSysColor(COLOR_GRAYTEXT));
+		COLORREF clrText = InvertIfNeeded(bDrawNewMarker ? NEW_MARKER_COLOR : ThemeColor(COLOR_GRAYTEXT));
 		COLORREF oldTextClr = SetTextColor(hdc, clrText);
 		COLORREF oldPenClr = ri::SetDCPenColor(hdc, clrText);
 
@@ -2260,13 +2261,13 @@ void MessageList::DrawMessage(HDC hdc, MessageItem& item, RECT& msgRect, RECT& c
 			if (mStyle == MS_FLATBR) clr = COLOR_WINDOW;
 			else if (mStyle == MS_GRADIENT) {
 				COLORREF c1, c2;
-				c1 = GetSysColor(COLOR_WINDOW); // high
-				c2 = GetSysColor(COLOR_3DFACE); // low
+				c1 = ThemeColor(COLOR_WINDOW); // high
+				c2 = ThemeColor(COLOR_3DFACE); // low
 				if (c1 < c2) clr = COLOR_3DFACE;
 				else         clr = COLOR_WINDOW;
 			}
 
-			FillRect(hdc, &dgRect, ri::GetSysColorBrush(clr));
+			FillRect(hdc, &dgRect, ThemeBrush(clr));
 		}
 		else
 		{
@@ -2304,7 +2305,7 @@ void MessageList::DrawMessage(HDC hdc, MessageItem& item, RECT& msgRect, RECT& c
 			if (iconSize > 32) iconSize = 48;
 			if (iconSize < 32) iconSize = 32;
 			HICON hic = (HICON)ri::LoadImage(g_hInstance, MAKEINTRESOURCE(DMIC(IDI_NEW_INLINE)), IMAGE_ICON, iconSize, iconSize, LR_SHARED | LR_CREATEDIBSECTION);
-			ri::DrawIconEx(hdc, dgRect.right - iconSize, dgRect.top + (dgRect.bottom - dgRect.top - iconSize) / 2 + 1, hic, iconSize, iconSize, 0, NULL, DI_COMPAT | DI_NORMAL);
+			ThemeDrawIconEx(hdc, dgRect.right - iconSize, dgRect.top + (dgRect.bottom - dgRect.top - iconSize) / 2 + 1, hic, iconSize, iconSize, 0, NULL, DI_COMPAT | DI_NORMAL);
 		}
 
 		if (oldFont) SelectObject(hdc, oldFont);
@@ -2329,27 +2330,27 @@ void MessageList::DrawMessage(HDC hdc, MessageItem& item, RECT& msgRect, RECT& c
 			else rect2.top -= 4;
 
 			if (!isFlashed)
-				bkgdColor = GetSysColor(COLOR_3DFACE);
+				bkgdColor = ThemeColor(COLOR_3DFACE);
 
 			if (item.m_msg->m_type != MessageType::CHANNEL_HEADER) {
-				ri::DrawEdge(hdc, &rect2, BDR_RAISED, edgeFlags);
+				ThemeDrawEdge(hdc, &rect2, BDR_RAISED, edgeFlags);
 			}
 			else if (edgeFlags & BF_MIDDLE) {
-				FillRect(hdc, &rect2, ri::GetSysColorBrush(COLOR_3DFACE));
+				FillRect(hdc, &rect2, ThemeBrush(COLOR_3DFACE));
 			}
 			break;
 		}
 		case MS_FLAT: {
 			if (!isFlashed) {
-				bkgdColor = GetSysColor(COLOR_3DFACE);
-				FillRect(hdc, &msgRect, ri::GetSysColorBrush(COLOR_3DFACE));
+				bkgdColor = ThemeColor(COLOR_3DFACE);
+				FillRect(hdc, &msgRect, ThemeBrush(COLOR_3DFACE));
 			}
 			break;
 		}
 		case MS_FLATBR: {
 			if (!isFlashed) {
-				bkgdColor = GetSysColor(COLOR_WINDOW);
-				FillRect(hdc, &msgRect, ri::GetSysColorBrush(COLOR_WINDOW));
+				bkgdColor = ThemeColor(COLOR_WINDOW);
+				FillRect(hdc, &msgRect, ThemeBrush(COLOR_WINDOW));
 			}
 			break;
 		}
@@ -2359,8 +2360,8 @@ void MessageList::DrawMessage(HDC hdc, MessageItem& item, RECT& msgRect, RECT& c
 				break;
 
 			COLORREF c1, c2;
-			c1 = GetSysColor(COLOR_WINDOW); // high
-			c2 = GetSysColor(COLOR_3DFACE); // low
+			c1 = ThemeColor(COLOR_WINDOW); // high
+			c2 = ThemeColor(COLOR_3DFACE); // low
 			bool swapped = false;
 
 			if (c1 < c2) {
@@ -2382,7 +2383,7 @@ void MessageList::DrawMessage(HDC hdc, MessageItem& item, RECT& msgRect, RECT& c
 
 			if (isChainCont) {
 				// Just render a flat background using the bottom color
-				FillRect(hdc, &msgRect, ri::GetSysColorBrush(swapped ? COLOR_WINDOW : COLOR_3DFACE));
+				FillRect(hdc, &msgRect, ThemeBrush(swapped ? COLOR_WINDOW : COLOR_3DFACE));
 				break;
 			}
 
@@ -2478,14 +2479,14 @@ void MessageList::DrawMessage(HDC hdc, MessageItem& item, RECT& msgRect, RECT& c
 				// Render on the left side.
 				int x = 0;
 				for (int i = 0; i < 2; i++) {
-					ri::DrawIconEx(hdc, x, rc.top, hics[i], sz, sz, 0, NULL, DI_NORMAL | DI_COMPAT);
+					ThemeDrawIconEx(hdc, x, rc.top, hics[i], sz, sz, 0, NULL, DI_NORMAL | DI_COMPAT);
 					x += sz;
 				}
 
 				x = rc.right;
 				for (int i = 4; i >= 2; i--) {
 					x -= sz;
-					ri::DrawIconEx(hdc, x, rc.top, hics[i], sz, sz, 0, NULL, DI_NORMAL | DI_COMPAT);
+					ThemeDrawIconEx(hdc, x, rc.top, hics[i], sz, sz, 0, NULL, DI_NORMAL | DI_COMPAT);
 				}
 			}
 
@@ -2555,7 +2556,7 @@ void MessageList::DrawMessage(HDC hdc, MessageItem& item, RECT& msgRect, RECT& c
 		COLORREF old = CLR_NONE;
 		if (inView) {
 			if (item.m_authorHighlighted) {
-				old = SetTextColor(hdc, RGB(0, 0, 255));
+				old = SetTextColor(hdc, COLOR_LINK);
 			}
 			else {
 				// figure out the color of the author
@@ -2576,7 +2577,7 @@ void MessageList::DrawMessage(HDC hdc, MessageItem& item, RECT& msgRect, RECT& c
 			{
 				int sm = GetSystemMetrics(SM_CXSMICON);
 				HICON hic = (HICON)ri::LoadImage(g_hInstance, MAKEINTRESOURCE(DMIC(IDI_BOT)), IMAGE_ICON, sm, sm, LR_SHARED);
-				ri::DrawIconEx(hdc, rc.left + auth_wid + ScaleByDPI(4), rc.top + (auth_hei - sm) / 2, hic, sm, sm, 0, NULL, DI_COMPAT | DI_NORMAL);
+				ThemeDrawIconEx(hdc, rc.left + auth_wid + ScaleByDPI(4), rc.top + (auth_hei - sm) / 2, hic, sm, sm, 0, NULL, DI_COMPAT | DI_NORMAL);
 			}
 		}
 
@@ -2630,7 +2631,7 @@ void MessageList::DrawMessage(HDC hdc, MessageItem& item, RECT& msgRect, RECT& c
 		if (icon) {
 			int iconY = rca.top + (rca.bottom - rca.top) / 2 - actionIconSize / 2;
 			HICON hicon = (HICON) ri::LoadImage(g_hInstance, MAKEINTRESOURCE(icon), IMAGE_ICON, actionIconSize, actionIconSize, LR_SHARED | LR_CREATEDIBSECTION);
-			ri::DrawIconEx(hdc, rca.left, iconY, hicon, actionIconSize, actionIconSize, 0, NULL, DI_COMPAT | DI_NORMAL);
+			ThemeDrawIconEx(hdc, rca.left, iconY, hicon, actionIconSize, actionIconSize, 0, NULL, DI_COMPAT | DI_NORMAL);
 			offs = actionIconSize + ScaleByDPI(4);
 		}
 
@@ -2767,9 +2768,9 @@ void MessageList::DrawMessage(HDC hdc, MessageItem& item, RECT& msgRect, RECT& c
 			}
 
 			if (item.m_msg->m_type == MessageType::UNSENT_MESSAGE)
-				oldTextColor = SetTextColor(hdc, RGB(255, 0, 0));
+				oldTextColor = SetTextColor(hdc, (IsDarkTheme() ? ThemePalette::Warning : RGB(255, 0, 0)));
 			else if (item.m_msg->m_type == MessageType::SENDING_MESSAGE)
-				oldTextColor = SetTextColor(hdc, GetSysColor(COLOR_GRAYTEXT));
+				oldTextColor = SetTextColor(hdc, ThemeColor(COLOR_GRAYTEXT));
 			
 			item.m_message.Draw(&mddc, offsetY);
 
@@ -2778,7 +2779,7 @@ void MessageList::DrawMessage(HDC hdc, MessageItem& item, RECT& msgRect, RECT& c
 			if (oldTextColor != CLR_NONE)
 				SetTextColor(hdc, oldTextColor);
 
-			COLORREF windowTextColor = InvertIfNeeded(GetSysColor(COLOR_WINDOWTEXT));
+			COLORREF windowTextColor = InvertIfNeeded(ThemeColor(COLOR_WINDOWTEXT));
 			for (size_t i = 0; i < item.m_interactableData.size(); i++) {
 				InteractableItem& iitem = item.m_interactableData[i];
 
@@ -2817,7 +2818,7 @@ void MessageList::DrawMessage(HDC hdc, MessageItem& item, RECT& msgRect, RECT& c
 			};
 			item.m_avatarRect = pfRect;
 
-			ri::DrawIconEx(hdc, pfRect.left - offs1, pfRect.top - offs2, g_ProfileBorderIcon, szScaled, szScaled, 0, NULL, DI_NORMAL | DI_COMPAT);
+			ThemeDrawIconEx(hdc, pfRect.left - offs1, pfRect.top - offs2, g_ProfileBorderIcon, szScaled, szScaled, 0, NULL, DI_NORMAL | DI_COMPAT);
 
 			if (inView)
 			{
@@ -2970,7 +2971,7 @@ void MessageList::DrawMessage(HDC hdc, MessageItem& item, RECT& msgRect, RECT& c
 	if (bDrawNewMarker)
 	{
 		// Draw the unread marker.
-		COLORREF oldClr = ri::SetDCPenColor(hdc, RGB(255, 0, 0));
+		COLORREF oldClr = ri::SetDCPenColor(hdc, (IsDarkTheme() ? ThemePalette::Warning : RGB(255, 0, 0)));
 		HGDIOBJ oldPen = SelectObject(hdc, ri::GetDCPen());
 
 		POINT ptOld{};
@@ -2982,7 +2983,7 @@ void MessageList::DrawMessage(HDC hdc, MessageItem& item, RECT& msgRect, RECT& c
 		if (iconSize > 32) iconSize = 48;
 		if (iconSize < 32) iconSize = 32;
 		HICON hic = (HICON)ri::LoadImage(g_hInstance, MAKEINTRESOURCE(DMIC(IDI_NEW)), IMAGE_ICON, iconSize, iconSize, LR_SHARED | LR_CREATEDIBSECTION);
-		ri::DrawIconEx(hdc, msgRect.right - iconSize, msgRect.top, hic, iconSize, iconSize, 0, NULL, DI_COMPAT | DI_NORMAL);
+		ThemeDrawIconEx(hdc, msgRect.right - iconSize, msgRect.top, hic, iconSize, iconSize, 0, NULL, DI_COMPAT | DI_NORMAL);
 
 		SelectObject(hdc, oldPen);
 		ri::SetDCPenColor(hdc, oldClr);
@@ -3121,11 +3122,11 @@ void MessageList::Paint(HDC hdc, RECT& paintRect)
 		case MS_GRADIENT: {
 			oldBkMode = SetBkMode(hdc, TRANSPARENT);
 			oldBkModeSet = true;
-			chosenBkColor = GetSysColor(COLOR_3DFACE);
+			chosenBkColor = ThemeColor(COLOR_3DFACE);
 			break;
 		}
 		case MS_FLATBR: {
-			chosenBkColor = GetSysColor(COLOR_WINDOW);
+			chosenBkColor = ThemeColor(COLOR_WINDOW);
 			oldBkColor = SetBkColor(hdc, chosenBkColor);
 			break;
 		}
@@ -3136,7 +3137,7 @@ void MessageList::Paint(HDC hdc, RECT& paintRect)
 			break;
 		}
 		default: {
-			chosenBkColor = GetSysColor(COLOR_3DFACE);
+			chosenBkColor = ThemeColor(COLOR_3DFACE);
 			oldBkColor = SetBkColor(hdc, chosenBkColor);
 			break;
 		}
@@ -3144,7 +3145,7 @@ void MessageList::Paint(HDC hdc, RECT& paintRect)
 
 	DrawingContext mddc(hdc);
 	mddc.SetBackgroundColor(chosenBkColor);
-	mddc.SetInvertTextColor(InvertIfNeeded(GetSysColor(COLOR_WINDOWTEXT)));
+	mddc.SetInvertTextColor(m_bInvertTextColors);
 
 	Snowflake lastDrawnMessage = 0;
 	Snowflake lastKnownMessage = 0;
@@ -4105,7 +4106,7 @@ void MessageList::InitializeClass()
 	WNDCLASS& wc = g_MsgListClass;
 
 	wc.lpszClassName = T_MESSAGE_LIST_CLASS;
-	wc.hbrBackground = ri::GetSysColorBrush(COLOR_3DFACE);
+	wc.hbrBackground = ThemeBrush(COLOR_3DFACE);
 	wc.style         = 0;
 	wc.lpfnWndProc   = MessageList::WndProc;
 	wc.hCursor       = LoadCursor(0, IDC_ARROW);
@@ -4128,7 +4129,7 @@ void MessageList::UpdateBackgroundBrush()
 	if (mode == MS_IMAGE)
 		SetClassLongPtr(m_hwnd, GCLP_HBRBACKGROUND, (LONG_PTR) m_backgroundBrush);
 	else
-		SetClassLongPtr(m_hwnd, GCLP_HBRBACKGROUND, (LONG_PTR) ri::GetSysColorBrush(bru));
+		SetClassLongPtr(m_hwnd, GCLP_HBRBACKGROUND, (LONG_PTR) ThemeBrush(bru));
 }
 
 bool MessageList::SendToMessage(Snowflake sf, bool requestIfNeeded, bool forceInvalidate)
@@ -4413,8 +4414,8 @@ void MessageList::ReloadBackground()
 
 	if (m_bBackgroundHasAlpha)
 	{
-		m_backgroundColor = GetSysColor(COLOR_WINDOW);
-		m_backgroundBrush = ri::GetSysColorBrush(COLOR_WINDOW);
+		m_backgroundColor = ThemeColor(COLOR_WINDOW);
+		m_backgroundBrush = ThemeBrush(COLOR_WINDOW);
 		m_bDontDeleteBackgroundBrush = true;
 	}
 	else
@@ -4442,7 +4443,7 @@ void MessageList::ReloadBackground()
 		m_bDontDeleteBackgroundBrush = false;
 	}
 
-	m_bInvertTextColors = IsColorDark(m_backgroundColor) ^ (!IsColorDark(GetSysColor(COLOR_WINDOWTEXT)));
+	m_bInvertTextColors = IsColorDark(m_backgroundColor) ^ (!IsColorDark(ThemeColor(COLOR_WINDOWTEXT)));
 }
 
 void MessageList::UnloadBackground()
@@ -4510,9 +4511,9 @@ COLORREF MessageList::GetDarkerBackgroundColor() const
 	if (style == MS_IMAGE)
 		bgColor = m_backgroundColor;
 	else if (style == MS_FLATBR)
-		bgColor = GetSysColor(COLOR_WINDOW);
+		bgColor = ThemeColor(COLOR_WINDOW);
 	else
-		bgColor = GetSysColor(COLOR_3DFACE);
+		bgColor = ThemeColor(COLOR_3DFACE);
 
 	COLORREF hint = IsColorDark(bgColor) ? 0xFFFFFF : 0x000000;
 
@@ -5328,7 +5329,7 @@ void MessagePollData::Draw(HDC hdc, RECT& messageRect, MessageList* pList)
 	rcPoll.right = rcPoll.left + m_width;
 	rcPoll.bottom = rcPoll.top + m_height;
 	rcPoll2 = rcPoll;
-	ri::DrawEdge(hdc, &rcPoll2, EDGE_RAISED, BF_RECT);
+	ThemeDrawEdge(hdc, &rcPoll2, EDGE_RAISED, BF_RECT);
 
 	rcPoll.left += borderSize;
 	rcPoll.top += borderSize;

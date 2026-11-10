@@ -19,3 +19,7 @@ DiscordMessenger-loader-report.txt
 
 __pycache__/
 *.pyc
+
+# Offline theme fixture outputs
+theme-controls.bmp
+fixture-errors.txt

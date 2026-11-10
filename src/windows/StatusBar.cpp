@@ -1,3 +1,4 @@
+#include "Theme.hpp"
 #include "StatusBar.hpp"
 #include "Main.hpp"
 #include "state/TypingExpiry.hpp"
@@ -222,11 +223,11 @@ void StatusBar::DrawItem(LPDRAWITEMSTRUCT lpDIS)
 	size_t sz = m_typingUsers.size();
 
 	if (sz)
-		ri::DrawIconEx(hdc, rc2.left, rc2.top + (rc2.bottom - rc2.top - smcxiconsm) / 2, icon, smcxiconsm, smcxiconsm, 0, NULL, DI_NORMAL | DI_COMPAT);
+		ThemeDrawIconEx(hdc, rc2.left, rc2.top + (rc2.bottom - rc2.top - smcxiconsm) / 2, icon, smcxiconsm, smcxiconsm, 0, NULL, DI_NORMAL | DI_COMPAT);
 
 	int mode = SetBkMode(hdc, TRANSPARENT);
 	HGDIOBJ gdiObjOld = SelectObject(hdc, g_TypingBoldFont);
-	COLORREF textOld = SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
+	COLORREF textOld = SetTextColor(hdc, ThemeColor(COLOR_WINDOWTEXT));
 
 	m_typing_status_rect = rc;
 

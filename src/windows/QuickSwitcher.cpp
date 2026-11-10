@@ -1,3 +1,4 @@
+#include "Theme.hpp"
 #include "QuickSwitcher.hpp"
 #include "Main.hpp"
 
@@ -266,16 +267,16 @@ LRESULT QuickSwitcher::HandleCustomDraw(HWND hWnd, NMLVCUSTOMDRAW* pInfo)
 			int sta = ListView_GetItemState(hList, idx, LVIS_SELECTED);
 
 			if (sta & LVIS_SELECTED) {
-				pInfo->clrTextBk = GetSysColor(COLOR_HIGHLIGHT);
-				pInfo->clrText = GetSysColor(COLOR_HIGHLIGHTTEXT);
+				pInfo->clrTextBk = ThemeColor(COLOR_HIGHLIGHT);
+				pInfo->clrText = ThemeColor(COLOR_HIGHLIGHTTEXT);
 			}
 			else if (pInfo->iSubItem == COL_CATEGORY_NAME) {
-				pInfo->clrTextBk = GetSysColor(COLOR_WINDOW);
-				pInfo->clrText = GetSysColor(COLOR_GRAYTEXT);
+				pInfo->clrTextBk = ThemeColor(COLOR_WINDOW);
+				pInfo->clrText = ThemeColor(COLOR_GRAYTEXT);
 			}
 			else {
-				pInfo->clrTextBk = GetSysColor(COLOR_WINDOW);
-				pInfo->clrText = GetSysColor(COLOR_MENUTEXT);
+				pInfo->clrTextBk = ThemeColor(COLOR_WINDOW);
+				pInfo->clrText = ThemeColor(COLOR_MENUTEXT);
 			}
 
 			return CDRF_NEWFONT;
@@ -303,11 +304,11 @@ void QuickSwitcher::CreateImageList()
 		return;
 	}
 
-	g_qsImlIdxs[ICN_CHANNEL] = ri::ImageList_AddIcon(g_qsIml, (HICON) ri::LoadImage(g_hInstance, MAKEINTRESOURCE(DMIC(IDI_CHANNEL)), IMAGE_ICON, szIcon, szIcon, LR_CREATEDIBSECTION | LR_SHARED));
-	g_qsImlIdxs[ICN_VOICE]   = ri::ImageList_AddIcon(g_qsIml, (HICON) ri::LoadImage(g_hInstance, MAKEINTRESOURCE(DMIC(IDI_VOICE)),   IMAGE_ICON, szIcon, szIcon, LR_CREATEDIBSECTION | LR_SHARED));
-	g_qsImlIdxs[ICN_GROUPDM] = ri::ImageList_AddIcon(g_qsIml, (HICON) ri::LoadImage(g_hInstance, MAKEINTRESOURCE(DMIC(IDI_GROUPDM)), IMAGE_ICON, szIcon, szIcon, LR_CREATEDIBSECTION | LR_SHARED));
-	g_qsImlIdxs[ICN_DM]      = ri::ImageList_AddIcon(g_qsIml, (HICON) ri::LoadImage(g_hInstance, MAKEINTRESOURCE(DMIC(IDI_DM)),      IMAGE_ICON, szIcon, szIcon, LR_CREATEDIBSECTION | LR_SHARED));
-	g_qsImlIdxs[ICN_GUILD]   = ri::ImageList_AddIcon(g_qsIml, (HICON) ri::LoadImage(g_hInstance, MAKEINTRESOURCE(DMIC(IDI_SERVER)),  IMAGE_ICON, szIcon, szIcon, LR_CREATEDIBSECTION | LR_SHARED));
+	g_qsImlIdxs[ICN_CHANNEL] = ThemeImageListAddIcon(g_qsIml, (HICON) ri::LoadImage(g_hInstance, MAKEINTRESOURCE(DMIC(IDI_CHANNEL)), IMAGE_ICON, szIcon, szIcon, LR_CREATEDIBSECTION | LR_SHARED));
+	g_qsImlIdxs[ICN_VOICE]   = ThemeImageListAddIcon(g_qsIml, (HICON) ri::LoadImage(g_hInstance, MAKEINTRESOURCE(DMIC(IDI_VOICE)),   IMAGE_ICON, szIcon, szIcon, LR_CREATEDIBSECTION | LR_SHARED));
+	g_qsImlIdxs[ICN_GROUPDM] = ThemeImageListAddIcon(g_qsIml, (HICON) ri::LoadImage(g_hInstance, MAKEINTRESOURCE(DMIC(IDI_GROUPDM)), IMAGE_ICON, szIcon, szIcon, LR_CREATEDIBSECTION | LR_SHARED));
+	g_qsImlIdxs[ICN_DM]      = ThemeImageListAddIcon(g_qsIml, (HICON) ri::LoadImage(g_hInstance, MAKEINTRESOURCE(DMIC(IDI_DM)),      IMAGE_ICON, szIcon, szIcon, LR_CREATEDIBSECTION | LR_SHARED));
+	g_qsImlIdxs[ICN_GUILD]   = ThemeImageListAddIcon(g_qsIml, (HICON) ri::LoadImage(g_hInstance, MAKEINTRESOURCE(DMIC(IDI_SERVER)),  IMAGE_ICON, szIcon, szIcon, LR_CREATEDIBSECTION | LR_SHARED));
 }
 
 void QuickSwitcher::DestroyImageList()

@@ -1,3 +1,4 @@
+#include "Theme.hpp"
 #include "GuildHeader.hpp"
 #include "PinList.hpp"
 #include "NotificationViewer.hpp"
@@ -182,8 +183,8 @@ void GuildHeader::DrawButton(HDC hdc, Button& button)
 	MoveToEx(hdc, 0, 0, &oldPt);
 
 	const int clr = GUILD_HEADER_COLOR_2;
-	COLORREF clrA = LerpColor(RGB(255, 255, 255), GetSysColor(clr), 1, 2);
-	COLORREF clrB = LerpColor(RGB(0, 0, 0), GetSysColor(clr), 1, 2);
+	COLORREF clrA = LerpColor(RGB(255, 255, 255), ThemeColor(clr), 1, 2);
+	COLORREF clrB = LerpColor(RGB(0, 0, 0), ThemeColor(clr), 1, 2);
 
 	RECT exp = { iconX - 4, iconY - 4, iconX + 4 + iconSize, iconY + 4 + iconSize };
 	exp.left   = std::max(exp.left,   button.m_rect.left);
@@ -199,7 +200,7 @@ void GuildHeader::DrawButton(HDC hdc, Button& button)
 		DeleteRgn(rgn);
 	}
 	else {
-		FillRect(hdc, &exp, ri::GetSysColorBrush(clr));
+		FillRect(hdc, &exp, ThemeBrush(clr));
 	}
 
 	if (button.m_held) {
@@ -418,8 +419,8 @@ LRESULT CALLBACK GuildHeader::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 
 			HDC hdc =
 			BeginPaint(hWnd, &ps);
-			COLORREF old = SetBkColor(hdc, GetSysColor(GUILD_HEADER_COLOR));
-			COLORREF oldText = SetTextColor(hdc, GetSysColor(COLOR_CAPTIONTEXT));
+			COLORREF old = SetBkColor(hdc, ThemeColor(GUILD_HEADER_COLOR));
+			COLORREF oldText = SetTextColor(hdc, ThemeColor(COLOR_CAPTIONTEXT));
 
 			pThis->Layout();
 
@@ -427,9 +428,9 @@ LRESULT CALLBACK GuildHeader::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 #if (WINVER>=0x0500)
 			FillGradient(hdc, &pThis->m_rectLeftFull,  GUILD_HEADER_COLOR, GUILD_HEADER_COLOR_2, false);
 			FillGradient(hdc, &pThis->m_rectRightFull, GUILD_HEADER_COLOR_2, GUILD_HEADER_COLOR, false);
-			FillRect(hdc, &pThis->m_rectMidFull, ri::GetSysColorBrush(GUILD_HEADER_COLOR_2));
+			FillRect(hdc, &pThis->m_rectMidFull, ThemeBrush(GUILD_HEADER_COLOR_2));
 #else
-			FillRect(hdc, &pThis->m_rectFull, ri::GetSysColorBrush(GUILD_HEADER_COLOR));
+			FillRect(hdc, &pThis->m_rectFull, ThemeBrush(GUILD_HEADER_COLOR));
 #endif
 
 			int old_mode = SetBkMode(hdc, TRANSPARENT);

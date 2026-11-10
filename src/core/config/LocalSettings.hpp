@@ -129,6 +129,8 @@ public:
 	bool AskToCheckUpdates() const {
 		return m_bAskToCheckUpdates;
 	}
+	bool EnableDarkMode() const { return m_bEnableDarkMode; }
+	void SetEnableDarkMode(bool enabled) { m_bEnableDarkMode = enabled; }
 	bool EnableDiagnostics() const { return m_bEnableDiagnostics; }
 	void SetEnableDiagnostics(bool enabled);
 	bool EnableTLSVerification() const {
@@ -249,6 +251,7 @@ private:
 	bool m_bAskToCheckUpdates = true;
 	bool m_bEnableTLSVerification = true;
 	bool m_bEnableDiagnostics = true;
+	bool m_bEnableDarkMode = false;
 	bool m_bDisableFormatting = false;
 	bool m_bShowScrollBarOnGuildList = false;
 	bool m_bCompactMemberList = false;

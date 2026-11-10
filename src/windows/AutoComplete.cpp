@@ -1,3 +1,4 @@
+#include "Theme.hpp"
 #include "AutoComplete.hpp"
 #include "Main.hpp"
 
@@ -331,7 +332,7 @@ bool AutoComplete::InitializeClass()
 	WNDCLASS wc;
 	ZeroMemory(&wc, sizeof wc);
 	wc.lpszClassName = T_AUTOCOMPLETE_CLASS;
-	wc.hbrBackground = ri::GetSysColorBrush(COLOR_3DFACE);
+	wc.hbrBackground = ThemeBrush(COLOR_3DFACE);
 	wc.style         = 0;
 	wc.hCursor       = LoadCursor (0, IDC_ARROW);
 	wc.lpfnWndProc   = AutoComplete::WndProc;
@@ -506,16 +507,16 @@ LRESULT AutoComplete::HandleCustomDraw(HWND hWnd, NMLVCUSTOMDRAW* pInfo)
 			int sta = ListView_GetItemState(hList, idx, LVIS_SELECTED);
 
 			if (sta & LVIS_SELECTED) {
-				pInfo->clrTextBk = GetSysColor(COLOR_HIGHLIGHT);
-				pInfo->clrText = GetSysColor(COLOR_HIGHLIGHTTEXT);
+				pInfo->clrTextBk = ThemeColor(COLOR_HIGHLIGHT);
+				pInfo->clrText = ThemeColor(COLOR_HIGHLIGHTTEXT);
 			}
 			else if (pInfo->iSubItem == COL_SUBNAME) {
-				pInfo->clrTextBk = GetSysColor(COLOR_WINDOW);
-				pInfo->clrText = GetSysColor(COLOR_GRAYTEXT);
+				pInfo->clrTextBk = ThemeColor(COLOR_WINDOW);
+				pInfo->clrText = ThemeColor(COLOR_GRAYTEXT);
 			}
 			else {
-				pInfo->clrTextBk = GetSysColor(COLOR_WINDOW);
-				pInfo->clrText = GetSysColor(COLOR_MENUTEXT);
+				pInfo->clrTextBk = ThemeColor(COLOR_WINDOW);
+				pInfo->clrText = ThemeColor(COLOR_MENUTEXT);
 			}
 
 			return CDRF_NEWFONT;

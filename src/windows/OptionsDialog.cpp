@@ -149,6 +149,7 @@ void OptionsInitPage(HWND hwndDlg, int pageNum)
 				GetSettingsManager()->GetMessageCompact() ? IDC_APPEARANCE_COMPACT : IDC_APPEARANCE_COZY
 			);
 
+			CheckDlgButton(hwndDlg, IDC_DARK_MODE, GetLocalSettings()->EnableDarkMode() ? BST_CHECKED : BST_UNCHECKED);
 			CheckDlgButton(hwndDlg, IDC_DOUBLE_BUFFERING, GetLocalSettings()->UseDoubleBuffering() ? BST_CHECKED : BST_UNCHECKED);
 
 			if (ShouldBlockDoubleBuffering()) {
@@ -464,6 +465,10 @@ INT_PTR OptionsHandleCommand(HWND hwndParent, HWND hWnd, int pageNum, UINT uMsg,
 				case IDC_COMPACT_MEMBER_LIST:
 					GetLocalSettings()->SetCompactMemberList(IsDlgButtonChecked(hWnd, IDC_COMPACT_MEMBER_LIST));
 					SendMessage(g_Hwnd, WM_RECREATEMEMBERLIST, 0, 0);
+					break;
+				case IDC_DARK_MODE:
+					GetLocalSettings()->SetEnableDarkMode(IsDlgButtonChecked(hWnd, IDC_DARK_MODE) == BST_CHECKED);
+					GetLocalSettings()->Save();
 					break;
 				case IDC_DOUBLE_BUFFERING:
 					GetLocalSettings()->SetUseDoubleBuffering(IsDlgButtonChecked(hWnd, IDC_DOUBLE_BUFFERING));

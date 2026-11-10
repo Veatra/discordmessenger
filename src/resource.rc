@@ -499,6 +499,8 @@ BEGIN
     CONTROL         "Compact member list",IDC_COMPACT_MEMBER_LIST,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,12,60,236,10
     COMBOBOX        IDC_COMBO_ALIGNMENT,53,164,195,78,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     LTEXT           "Aligned to:",IDC_STATIC,12,164,41,12,SS_CENTERIMAGE
+    CONTROL         "Dark appearance (restart required)",IDC_DARK_MODE,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,12,194,236,12
     GROUPBOX        "Message List Watermark",IDC_STATIC,6,135,248,48
     GROUPBOX        "User Interface",IDC_STATIC,6,48,248,56
     LTEXT           "Size of UI elements:",IDC_STATIC,12,86,68,12,SS_CENTERIMAGE

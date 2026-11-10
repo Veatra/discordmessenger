@@ -1,3 +1,4 @@
+#include "Theme.hpp"
 #include "TextInterface_Win32.hpp"
 #include "WinUtils.hpp"
 #include "AvatarCache.hpp"
@@ -225,21 +226,21 @@ void MdDrawString(DrawingContext* context, const Rect& rect, const String& str, 
 	bool setColorBG = false;
 	int flags = DT_NOPREFIX;
 	if (styleFlags & WORD_LINK) {
-		oldColor = SetTextColor(context->m_hdc, COLOR_LINK);
+		oldColor = SetTextColor(context->m_hdc, ThemeReadableColor(COLOR_LINK, context->m_bkColor));
 		setColor = true;
 	}
 	if (styleFlags & WORD_CEMOJI) {
-		oldColor = SetTextColor(context->m_hdc, RGB(255, 0, 0));
+		oldColor = SetTextColor(context->m_hdc, (IsDarkTheme() ? ThemePalette::Warning : RGB(255, 0, 0)));
 		setColor = true;
 	}
 	if (styleFlags & (WORD_MENTION | WORD_EVERYONE)) {
-		oldColor = SetTextColor(context->m_hdc, COLOR_MENT);
+		oldColor = SetTextColor(context->m_hdc, ThemeReadableColor(COLOR_MENT, context->m_bkColor));
 		setColor = true;
 		oldColorBG = SetBkColor(context->m_hdc, LerpColor(context->m_bkColor, COLOR_MENT, 10, 100));
 		setColorBG = true;
 	}
 	if (styleFlags & (WORD_CODE | WORD_MLCODE)) {
-		oldColorBG = SetBkColor(context->m_hdc, context->InvertIfNeeded(GetSysColor(COLOR_WINDOW)));
+		oldColorBG = SetBkColor(context->m_hdc, context->InvertIfNeeded(ThemeColor(COLOR_WINDOW)));
 		setColorBG = true;
 		flags |= DT_WORDBREAK | DT_EDITCONTROL;
 	}
@@ -254,7 +255,7 @@ void MdDrawString(DrawingContext* context, const Rect& rect, const String& str, 
 		RECT rc2 = rc;
 		rc2.left -= ScaleByDPI(SIZE_QUOTE_INDENT);
 		rc2.right = rc2.left + ScaleByDPI(3);
-		FillRect(hdc, &rc2, ri::GetSysColorBrush(COLOR_SCROLLBAR));
+		FillRect(hdc, &rc2, ThemeBrush(COLOR_SCROLLBAR));
 	}
 
 	// prevent italics that overflow the rect from being clipped
@@ -285,15 +286,15 @@ void MdDrawCodeBackground(DrawingContext* context, const Rect& rect)
 	RECT rc = RectToNative(rect);
 
 	if (context->m_bInvertTextColor) {
-		COLORREF old = ri::SetDCBrushColor(context->m_hdc, context->InvertIfNeeded(GetSysColor(COLOR_WINDOW)));
+		COLORREF old = ri::SetDCBrushColor(context->m_hdc, context->InvertIfNeeded(ThemeColor(COLOR_WINDOW)));
 		FillRect(context->m_hdc, &rc, ri::GetDCBrush());
 		ri::SetDCBrushColor(context->m_hdc, old);
 	}
 	else {
-		FillRect(context->m_hdc, &rc, ri::GetSysColorBrush(COLOR_WINDOW));
+		FillRect(context->m_hdc, &rc, ThemeBrush(COLOR_WINDOW));
 	}
 
-	ri::DrawEdge(context->m_hdc, &rc, BDR_SUNKEN, BF_RECT);
+	ThemeDrawEdge(context->m_hdc, &rc, BDR_SUNKEN, BF_RECT);
 }
 
 void MdDrawForwardBackground(DrawingContext* context, const Rect& rect)
@@ -304,12 +305,12 @@ void MdDrawForwardBackground(DrawingContext* context, const Rect& rect)
 	rc.left = rc.right - ScaleByDPI(3);
 
 	if (context->m_bInvertTextColor) {
-		COLORREF old = ri::SetDCBrushColor(context->m_hdc, context->InvertIfNeeded(GetSysColor(COLOR_GRAYTEXT)));
+		COLORREF old = ri::SetDCBrushColor(context->m_hdc, context->InvertIfNeeded(ThemeColor(COLOR_GRAYTEXT)));
 		FillRect(context->m_hdc, &rc, ri::GetDCBrush());
 		ri::SetDCBrushColor(context->m_hdc, old);
 	}
 	else {
-		FillRect(context->m_hdc, &rc, ri::GetSysColorBrush(COLOR_GRAYTEXT));
+		FillRect(context->m_hdc, &rc, ThemeBrush(COLOR_GRAYTEXT));
 	}
 }
 

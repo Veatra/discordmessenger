@@ -87,6 +87,9 @@ bool LocalSettings::Load()
 	if (j.contains("Maximized"))
 		m_bMaximized = j["Maximized"];
 
+	if (j.contains("EnableDarkMode") && j["EnableDarkMode"].is_boolean())
+		m_bEnableDarkMode = j["EnableDarkMode"];
+
 	if (j.contains("EnableDiagnostics") && j["EnableDiagnostics"].is_boolean())
 		m_bEnableDiagnostics = j["EnableDiagnostics"];
 
@@ -190,6 +193,7 @@ bool LocalSettings::Save()
 	j["MinimizeToNotif"] = m_bMinimizeToNotif;
 	j["Maximized"] = m_bMaximized;
 	j["CheckUpdates"] = m_bCheckUpdates;
+	j["EnableDarkMode"] = m_bEnableDarkMode;
 	j["EnableDiagnostics"] = m_bEnableDiagnostics;
 	j["EnableTLSVerification"] = m_bEnableTLSVerification;
 	j["DisableFormatting"] = m_bDisableFormatting;

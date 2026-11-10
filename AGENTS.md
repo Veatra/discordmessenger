@@ -71,6 +71,9 @@ Run commands from the repository root unless stated otherwise.
    `python3 tests/status_bar_timers.py` when changing typing-indicator behavior.
    Run `tests/diagnostics_log.py`, `tests/windows_package.py`, and
    `tests/bitmap_readback.py` with Python for logging, packaging, or clipboard edits.
+   For appearance changes, run `tests/theme_palette.cpp` and the offline Win32
+   control fixture in dark and light modes when a Windows-compatible runner is available.
+   Keep theme text/background pairs together; never recolor images or OS-wide colors.
 8. Compilation does not validate Windows GUI or live Discord behavior. State
    precisely what was tested and what remains untested. Do not require real
    Discord credentials for compilation or isolated tests.

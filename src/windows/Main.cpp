@@ -1,3 +1,4 @@
+#include "Theme.hpp"
 #include "utils/Diagnostics.hpp"
 #include "Config.hpp"
 #include "Main.hpp"
@@ -1987,14 +1988,14 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLin
 	g_pFrontEnd = new Frontend_Win32;
 	g_pHTTPClient = new NetworkerThreadManager;
 
-	// Create a background brush.
-	g_backgroundBrush = ri::GetSysColorBrush(COLOR_3DFACE);
-
 	SetupCachePathIfNeeded();
 
 	LocalSettings* pSettings = GetLocalSettings();
 	pSettings->Load();
+	InitializeTheme(pSettings->EnableDarkMode());
+	g_backgroundBrush = ThemeBrush(COLOR_3DFACE);
 	SetDiagnosticsEnabled(pSettings->EnableDiagnostics());
+	DiagnosticLog("Appearance: %s (dark requested: %d)", IsDarkTheme() ? "dark" : "system", int(pSettings->EnableDarkMode()));
 	DiagnosticLog("Startup: version %s, %u-bit process, Windows 8.1 API target", GetAppVersionString(), unsigned(sizeof(void*) * 8));
 	OSVERSIONINFOW os = {};
 	os.dwOSVersionInfoSize = sizeof(os);

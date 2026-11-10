@@ -519,3 +519,5 @@
 #endif
 
 #define IDC_ENABLE_DIAGNOSTICS 1900
+
+#define IDC_DARK_MODE 1901

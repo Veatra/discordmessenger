@@ -1,3 +1,4 @@
+#include "Theme.hpp"
 #include "MemberList.hpp"
 #include "ProfilePopout.hpp"
 #include "state/ProfileCache.hpp"
@@ -353,30 +354,30 @@ LRESULT MemberList::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			Profile* pf = GetProfileCache()->LookupProfile(user, "", "", "", false);
 
 			COLORREF nameTextColor = 0;
-			COLORREF statusTextColor = GetSysColor(COLOR_GRAYTEXT);
-			COLORREF backgdColor = GetSysColor(COLOR_WINDOW);
+			COLORREF statusTextColor = ThemeColor(COLOR_GRAYTEXT);
+			COLORREF backgdColor = ThemeColor(COLOR_WINDOW);
 
 			nameTextColor = GetNameColor(pf, pList->m_guild);
 			if (nameTextColor == CLR_NONE)
-				nameTextColor = GetSysColor(COLOR_WINDOWTEXT);
+				nameTextColor = ThemeColor(COLOR_WINDOWTEXT);
 			
 			if (pList->m_hotItem == lpdis->itemID)
 			{
-				FillRect(lpdis->hDC, &lpdis->rcItem, ri::GetSysColorBrush(COLOR_MENUBAR));
-				backgdColor = GetSysColor(COLOR_MENUBAR);
+				FillRect(lpdis->hDC, &lpdis->rcItem, ThemeBrush(COLOR_MENUBAR));
+				backgdColor = ThemeColor(COLOR_MENUBAR);
 			}
 			else
 			{
 				// Windows 2000 doesn't do automatic clearing
-				FillRect(lpdis->hDC, &lpdis->rcItem, ri::GetSysColorBrush(COLOR_WINDOW));
+				FillRect(lpdis->hDC, &lpdis->rcItem, ThemeBrush(COLOR_WINDOW));
 			}
 			
 			if (lpdis->itemState & ODS_SELECTED)
 			{
-				FillRect(lpdis->hDC, &lpdis->rcItem, ri::GetSysColorBrush(COLOR_HIGHLIGHT));
-				backgdColor     = GetSysColor(COLOR_HIGHLIGHT);
-				nameTextColor   = GetSysColor(COLOR_HIGHLIGHTTEXT);
-				statusTextColor = GetSysColor(COLOR_HIGHLIGHTTEXT);
+				FillRect(lpdis->hDC, &lpdis->rcItem, ThemeBrush(COLOR_HIGHLIGHT));
+				backgdColor     = ThemeColor(COLOR_HIGHLIGHT);
+				nameTextColor   = ThemeColor(COLOR_HIGHLIGHTTEXT);
+				statusTextColor = ThemeColor(COLOR_HIGHLIGHTTEXT);
 			}
 
 			int textOffset = 0;
@@ -386,7 +387,7 @@ LRESULT MemberList::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				int sz = ScaleByDPI(PROFILE_PICTURE_SIZE_DEF + 12);
 				int szDraw = GetProfileBorderSize();
 
-				ri::DrawIconEx(hdc, rcItem.left, rcItem.top, g_ProfileBorderIcon, szDraw, szDraw, 0, NULL, DI_NORMAL | DI_COMPAT);
+				ThemeDrawIconEx(hdc, rcItem.left, rcItem.top, g_ProfileBorderIcon, szDraw, szDraw, 0, NULL, DI_NORMAL | DI_COMPAT);
 
 				// draw profile picture
 				bool hasAlpha = false;
@@ -528,7 +529,7 @@ void MemberList::InitializeClass()
 	WNDCLASS& wc = g_MemberListClass;
 
 	wc.lpszClassName = T_MEMBER_LIST_CLASS;
-	wc.hbrBackground = ri::GetSysColorBrush(COLOR_3DFACE);
+	wc.hbrBackground = ThemeBrush(COLOR_3DFACE);
 	wc.style = 0;
 	wc.hCursor = LoadCursor(0, IDC_ARROW);
 	wc.lpfnWndProc = &MemberList::WndProc;

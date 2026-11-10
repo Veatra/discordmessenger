@@ -1,3 +1,4 @@
+#include "Theme.hpp"
 #define WIN32_LEAN_AND_MEAN
 #ifndef FKG_FORCED_USAGE
 #define FKG_FORCED_USAGE
@@ -427,12 +428,12 @@ int GetGradientInactiveCaptionColor()
 void FillGradient(HDC hdc, const LPRECT lpRect, int sci1, int sci2, bool vertical)
 {
 	if (ri::HaveMsImg()) {
-		COLORREF c1 = GetSysColor(sci1);
-		COLORREF c2 = GetSysColor(sci2);
+		COLORREF c1 = ThemeColor(sci1);
+		COLORREF c2 = ThemeColor(sci2);
 		FillGradientColors(hdc, lpRect, c1, c2, vertical);
 	}
 	else {
-		HBRUSH hbr = ri::GetSysColorBrush(sci1);
+		HBRUSH hbr = ThemeBrush(sci1);
 		FillRect(hdc, lpRect, hbr);
 	}
 }
@@ -627,7 +628,7 @@ COLORREF GetNameColor(Profile* pf, Snowflake guild)
 		}
 	}
 
-	return winnerCol;
+	return ThemeReadableColor(winnerCol, ThemeColor(COLOR_WINDOW));
 }
 
 void LaunchURL(const std::string& link)
@@ -961,7 +962,7 @@ void DrawActivityStatus(HDC hdc, int x, int y, eActiveStatus status)
 
 void DrawLoadingBox(HDC hdc, RECT rect)
 {
-	ri::DrawEdge(hdc, &rect, BDR_SUNKEN, BF_RECT);
+	ThemeDrawEdge(hdc, &rect, BDR_SUNKEN, BF_RECT);
 
 	HRGN rgn = DoubleBufferingHelper::CreateRectRgn(hdc, rect);
 	SelectClipRgn(hdc, rgn);
@@ -977,7 +978,7 @@ void DrawLoadingBox(HDC hdc, RECT rect)
 
 void DrawErrorBox(HDC hdc, RECT rect)
 {
-	ri::DrawEdge(hdc, &rect, BDR_SUNKEN, BF_RECT);
+	ThemeDrawEdge(hdc, &rect, BDR_SUNKEN, BF_RECT);
 
 	HRGN rgn = DoubleBufferingHelper::CreateRectRgn(hdc, rect);
 	SelectClipRgn(hdc, rgn);
@@ -1195,7 +1196,7 @@ bool IsColorDark(COLORREF cr)
 
 bool IsTextColorDark()
 {
-	return IsColorDark(GetSysColor(COLOR_CAPTIONTEXT));
+	return IsColorDark(ThemeColor(COLOR_CAPTIONTEXT));
 }
 
 std::map<HICON, bool> m_bMostlyBlack;
@@ -1246,8 +1247,6 @@ bool IsIconMostlyBlack(HICON hic)
 		}
 
 		ReleaseDC(g_Hwnd, hdc);
-		if (ii.hbmColor) DeleteBitmap(ii.hbmColor);
-		if (ii.hbmMask)  DeleteBitmap(ii.hbmMask);
 		delete[] bits;
 	}
 	else
@@ -1256,6 +1255,8 @@ bool IsIconMostlyBlack(HICON hic)
 		isit = true;
 	}
 
+	if (ii.hbmColor) DeleteBitmap(ii.hbmColor);
+	if (ii.hbmMask) DeleteBitmap(ii.hbmMask);
 	m_bMostlyBlack[hic] = isit;
 	return isit;
 }

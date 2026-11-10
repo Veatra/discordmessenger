@@ -268,3 +268,46 @@ target of 0x0603. Do not raise the loader header merely to match the API target.
 the executable header, and bundled compiler/library DLL dependencies. CI includes
 the pthread runtime DLL, launcher report script, and SHA-256 manifest as well as
 the OpenSSL DLLs. These checks do not replace testing on real Windows.
+
+## Dark appearance on Windows 8.1
+
+Enable **File > Preferences > Appearance > Dark appearance**, then fully exit
+(including the tray icon) and restart. The choice is saved immediately. Light
+appearance remains the default. Disable the option and restart to return to the
+Windows system palette.
+
+The app uses a slate palette with light text, brighter links/mentions, distinct
+selected rows, and contrast-adjusted role names. It themes its message surfaces,
+inputs, lists/trees, dialogs, checkboxes/radio buttons, buttons, tabs, progress and
+status controls. Photos and attachment images retain their original colors.
+The implementation uses documented Win32/GDI/common-controls APIs available on
+Windows 8.1, rather than Windows 10 dark-mode ordinals or registry assumptions.
+
+System title bars, menus, native message boxes, file pickers and scrollbars keep
+the Windows appearance; this avoids unsupported or partially themed OS dialogs.
+If Windows High Contrast is active when starting the app, the system palette
+wins over the dark preference. Restart after changing High Contrast while the
+app is running. UI theme changes also require restart so existing windows and
+cached brushes cannot end up with mismatched palettes.
+
+Portable contrast regression check:
+
+```sh
+g++ -std=c++11 -Wall -Wextra -Isrc/windows tests/theme_palette.cpp -o /tmp/dm-theme-palette
+/tmp/dm-theme-palette
+```
+
+`tests/theme_controls.cpp` is an offline Win32 fixture linking `Theme.cpp`.
+It checks native dialog colors and checkbox behavior and captures
+`theme-controls.bmp` in the working directory. Run it in separate processes for
+dark (default) and light (`light` argument). It does not load account data or
+contact Discord; its icon-classification/drawing helpers are stubs, while its image-list test
+uses a generated black icon. The fixture can be built with
+MinGW using the same Windows version/Unicode defines and include paths as the
+application, linking `comctl32`, `uxtheme` and `gdi32`. Compile and link
+`tests/theme_controls.rc` with windres too, so the fixture uses the same
+common-controls activation context as the app.
+
+The shared-palette approach was informed by upstream PR
+<https://github.com/DiscordMessenger/dm/pull/267>. This fork does not import its
+unfinished scroll-container changes or upgrade the compatibility dependencies.
