@@ -166,11 +166,7 @@ INT_PTR CALLBACK UploadDialogProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
 				}
 
 				// TODO: Win32 docs say we should do this in a background thread.
-#ifdef UNICODE
 				DbgPrintW("Getting file info for %S", pData->m_lpstrFile);
-#else
-				DbgPrintW("Getting file info for %s", pData->m_lpstrFile);
-#endif
 				ri::SHGetFileInfo(pData->m_lpstrFile, 0, &pData->m_sfi, sizeof(SHFILEINFO), SHGFI_ICON);
 				DbgPrintW("Got the file info!");
 			}

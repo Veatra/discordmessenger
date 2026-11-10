@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <climits>
+#include <new>
 #include <windows.h>
 #include <commctrl.h>
 #include <commdlg.h>
@@ -21,10 +22,8 @@
 #include "ProgressDialog.hpp"
 #include "DoubleBufferingHelper.hpp"
 
-#ifndef OLD_WINDOWS
 #include <shlwapi.h>
 #include "utils/Util.hpp"
-#endif
 
 constexpr int DEFAULT_DPI  = 96;
 constexpr int NORMAL_SCALE = 1000;
@@ -145,18 +144,10 @@ bool IsWindowActive(HWND hWnd)
 
 bool FileExists(const std::string& path)
 {
-#ifdef OLD_WINDOWS
-	FILE* f = fopen(path.c_str(), "rb");
-	if (!f)
-		return false;
-	fclose(f);
-	return true;
-#else
 	LPCTSTR str = ConvertCppStringToTString(path);
 	bool res = ri::PathFileExists(str);
 	free((void*)str);
 	return res;
-#endif
 }
 
 LPTSTR GetTStringFromHResult(HRESULT hr)
@@ -228,11 +219,7 @@ void CopyStringToClipboard(const std::string& str)
 		GlobalUnlock(clipbuffer);
 
 		// set the clipboard data
-#if UNICODE
 		SetClipboardData(CF_UNICODETEXT, clipbuffer);
-#else
-		SetClipboardData(CF_TEXT, clipbuffer);
-#endif
 
 		// release everything we have
 		CloseClipboard();
@@ -263,148 +250,11 @@ void CopyImageToClipboard(HBITMAP hBitmap)
 	CloseClipboard();
 }
 
-// Borrowed from NanoShellOS: https://github.com/iProgramMC/NanoShellOS/blob/master/src/utf8.c
-#define REPLACEMENT_CHAR 0xFFFD
-int Utf8DecodeCharacter(const char* pByteSeq, int* pSizeOut)
-{
-	const uint8_t* chars = (const uint8_t*)pByteSeq;
-
-	uint8_t char0 = chars[0];
-
-	if (char0 < 0x80)
-	{
-		// 1 byte ASCII character. Fine
-		if (pSizeOut) *pSizeOut = 1;
-		return char0;
-	}
-
-	char char1 = chars[1];
-	if (char1 == 0) return REPLACEMENT_CHAR; // this character is broken.
-	if (char0 < 0xE0)
-	{
-		// 2 byte character.
-		int codepoint = ((char0 & 0x1F) << 6) | (char1 & 0x3F);
-		if (pSizeOut) *pSizeOut = 2;
-		return codepoint;
-	}
-
-	char char2 = chars[2];
-	if (char2 == 0) return REPLACEMENT_CHAR; // this character is broken.
-	if (char0 < 0xF0)
-	{
-		// 3 byte character.
-		int codepoint = ((char0 & 0xF) << 12) | ((char1 & 0x3F) << 6) | (char2 & 0x3F);
-		if (pSizeOut) *pSizeOut = 3;
-		return codepoint;
-	}
-
-	char char3 = chars[3];
-	// 4 byte character.
-	if (char3 == 0) return REPLACEMENT_CHAR;
-
-	int codepoint = ((char0 & 0x07) << 18) | ((char1 & 0x3F) << 12) | ((char2 & 0x3F) << 6) | (char3 & 0x3F);
-	if (pSizeOut) *pSizeOut = 4;
-	return codepoint;
-}
-
 LPTSTR ConvertCppStringToTString(const std::string& sstr, size_t* lenOut)
 {
-#ifdef UNICODE
 	size_t sz = sstr.size() + 1;
 	TCHAR* str = (TCHAR*)calloc(sz, sizeof(TCHAR));
 	size_t convertedChars = (size_t)MultiByteToWideChar(CP_UTF8, 0, sstr.c_str(), -1, str, (int) sz);
-#else // ANSI
-	size_t convertedChars = 0;
-	LPTSTR str = NULL;
-
-	// check if this string is pure ASCII
-	bool isPureAscii = true;
-	const char* ptr = sstr.c_str();
-	while (*ptr) {
-		if (((int)*ptr) & 0x80) {
-			isPureAscii = false;
-			break;
-		}
-		ptr++;
-	}
-
-	if (isPureAscii)
-	{
-	dumbConversion:
-		size_t sz = sstr.size() + 1;
-		str = (TCHAR*)calloc(sz, sizeof(TCHAR));
-		strncpy(str, sstr.c_str(), sz);
-		str[sz - 1] = 0;
-		convertedChars = sz - 1;
-	}
-	else
-	{
-		// not pure ASCII
-		// decode all of the UTF-8 characters into a wide character string
-		size_t index = 0, maxsz = sstr.size() + 2;
-		WCHAR* wcs = (WCHAR*) calloc(maxsz, sizeof(WCHAR));
-
-		ptr = sstr.c_str();
-		while (*ptr && index + 1 < maxsz)
-		{
-			int sz = 0;
-			int decoded = Utf8DecodeCharacter(ptr, &sz);
-			if (sz == 0) {
-				sz = 1;
-				decoded = REPLACEMENT_CHAR;
-			}
-
-			if (decoded > 0xFFFF)
-				decoded = REPLACEMENT_CHAR;
-
-			wcs[index++] = (WCHAR) decoded;
-			ptr += sz;
-		}
-
-		wcs[index] = 0;
-
-		// This is a scam and causes the app to not parse the UTF-8 at all.
-		// Believe it or not I also tried to add the info that we support UTF-8
-		// to the manifest but it still doesn't work.
-		//int codepage = CP_ACP;
-		//if (LOBYTE(GetVersion()) >= 6)
-		//	codepage = CP_UTF8;
-
-		// and then try to turn it into a multi-byte string
-		int sz = WideCharToMultiByte(CP_ACP, WC_COMPOSITECHECK | WC_DEFAULTCHAR, wcs, index, NULL, 0, NULL, NULL);
-		if (sz == 0) {
-			// failure ... just do the dumb conversion
-			DbgPrintW("WideCharToMultiByte failed: %d", GetLastError());
-			free(wcs);
-			goto dumbConversion;
-		}
-
-		// avoid overflow
-		if (sz > INT_MAX - 2)
-			sz = INT_MAX - 2;
-
-		CHAR defaultChar = 0x7F;
-
-		str = (LPTSTR) calloc(sz + 1, sizeof(TCHAR));
-		int sz2 = WideCharToMultiByte(CP_ACP, WC_COMPOSITECHECK | WC_DEFAULTCHAR, wcs, index, str, sz + 1, &defaultChar, NULL);
-		if (sz2 == 0)
-		{
-			// CP_ACP might be UTF-8 for some reason, try with the default one
-			sz2 = WideCharToMultiByte(CP_ACP, WC_COMPOSITECHECK | WC_DEFAULTCHAR, wcs, index, str, sz + 1, NULL, NULL);
-			
-			if (sz2 == 0)
-			{
-				DbgPrintW("Second WideCharToMultiByte failed: %d", GetLastError());
-				free(wcs);
-				free(str);
-				goto dumbConversion;
-			}
-		}
-
-		// converted!
-		convertedChars = (size_t) sz2;
-	}
-#endif
 
 	if (lenOut)
 		*lenOut = convertedChars;
@@ -436,18 +286,11 @@ void ConvertCppStringToTCharArray(const std::string& sstr, TCHAR* buff, size_t s
 		return;
 	}
 
-#ifdef UNICODE
 	int len = MultiByteToWideChar(CP_UTF8, 0, sstr.c_str(), -1, buff, (int)szMax - 1);
 	buff[szMax - 1] = 0;
-#else
-	strncpy(buff, sstr.c_str(), szMax);
-	buff[szMax - 1] = 0;
-	int len = strlen(buff);
-#endif
 	buff[len] = 0;
 }
 
-// note: this works on ANSI too
 std::string MakeStringFromUnicodeString(LPCWSTR wstr)
 {
 	size_t sl = lstrlenW(wstr);
@@ -470,9 +313,7 @@ std::string MakeStringFromEditData(LPCTSTR tstr)
 	const TCHAR* tcString = tstr;
 	for (; *tcString; tcString++)
 	{
-		if (sizeof(TCHAR) == 1 && (*tcString < 0 || *tcString > 127)) {
-			tch2.push_back('?');
-		} else if (*tcString != '\r') {
+		if (*tcString != '\r') {
 			tch2.push_back(*tcString);
 		}
 	}
@@ -563,7 +404,7 @@ void DrawBitmap(HDC hdc, HBITMAP bitmap, int x, int y, LPRECT clip, COLORREF tra
 
 	SelectClipRgn(hdc, NULL);
 	SelectObject(hdcMem, objOld);
-	DeleteObject(hdcMem);
+	DeleteDC(hdcMem);
 
 	if (clip) {
 		SelectClipRgn(hdc, NULL);
@@ -573,38 +414,18 @@ void DrawBitmap(HDC hdc, HBITMAP bitmap, int x, int y, LPRECT clip, COLORREF tra
 	}
 }
 
-static bool HasGradientCaption()
-{
-	auto version = LOWORD(GetVersion());
-	if (LOBYTE(version) < 4) return false;
-	if (LOBYTE(version) > 4) return true;
-	return HIBYTE(version) > 1;
-}
-
 int GetGradientActiveCaptionColor()
 {
-	if (!HasGradientCaption())
-		return COLOR_ACTIVECAPTION;
-
 	return COLOR_GRADIENTACTIVECAPTION;
 }
 
 int GetGradientInactiveCaptionColor()
 {
-	if (!HasGradientCaption())
-		return COLOR_INACTIVECAPTION;
-
 	return COLOR_GRADIENTINACTIVECAPTION;
 }
 
 void FillGradient(HDC hdc, const LPRECT lpRect, int sci1, int sci2, bool vertical)
 {
-	if (!HasGradientCaption()) {
-		if (sci1 == COLOR_GRADIENTACTIVECAPTION)
-			sci1 = COLOR_ACTIVECAPTION;
-		if (sci1 == COLOR_GRADIENTINACTIVECAPTION)
-			sci1 = COLOR_INACTIVECAPTION;
-	}
 	if (ri::HaveMsImg()) {
 		COLORREF c1 = GetSysColor(sci1);
 		COLORREF c2 = GetSysColor(sci2);
@@ -1171,52 +992,35 @@ void DrawErrorBox(HDC hdc, RECT rect)
 }
 
 bool GetDataFromBitmap(HDC hdc, HBITMAP hbm, BYTE*& pBytes, int& width, int& height, int& bpp)
-{	
-	// Man what the hell
-	BITMAP bm;
-	BITMAPINFO bmi;
-
-	ZeroMemory(&bm, sizeof bm);
-	if (!GetObject(hbm, sizeof bm, &bm)) {
-		DbgPrintW("Cannot obtain pointer to bitmap!");
+{
+	pBytes = nullptr;
+	BITMAP bm = {};
+	if (!GetObject(hbm, sizeof bm, &bm) || bm.bmWidth <= 0 || bm.bmHeight <= 0 || bm.bmWidth > INT_MAX / 4)
 		return false;
-	}
 
 	width = bm.bmWidth;
 	height = bm.bmHeight;
-	bpp = bm.bmBitsPixel;
+	bpp = 32;
+	const size_t pitch = size_t(width) * 4;
+	if (size_t(height) > SIZE_MAX / pitch)
+		return false;
 
-	ZeroMemory(&bmi, sizeof bmi);
+	BITMAPINFO bmi = {};
 	bmi.bmiHeader.biSize = sizeof bmi.bmiHeader;
-	bmi.bmiHeader.biWidth = bm.bmWidth;
-	bmi.bmiHeader.biHeight = bm.bmHeight;
+	bmi.bmiHeader.biWidth = width;
+	bmi.bmiHeader.biHeight = -height; // Top-down DIBs are supported on Windows 8.1.
 	bmi.bmiHeader.biPlanes = 1;
-	bmi.bmiHeader.biBitCount = bm.bmBitsPixel;
+	bmi.bmiHeader.biBitCount = 32;
 	bmi.bmiHeader.biCompression = BI_RGB;
-	bmi.bmiHeader.biSizeImage = 0;
 
-	int pitch = (((bm.bmWidth * bm.bmBitsPixel) + 31) & ~31) >> 3;
-
-	pBytes = new BYTE[pitch * bm.bmHeight];
-
-	if (!GetDIBits(hdc, hbm, 0, bm.bmHeight, pBytes, &bmi, DIB_RGB_COLORS))
-	{
-		DbgPrintW("Error, can't get DI bits for bitmap!");
-		delete[] pBytes;
+	BYTE* pixels = new (std::nothrow) BYTE[pitch * height];
+	if (!pixels)
+		return false;
+	if (GetDIBits(hdc, hbm, 0, height, pixels, &bmi, DIB_RGB_COLORS) != height) {
+		delete[] pixels;
 		return false;
 	}
-
-	// swap in software, because in Windows NT 3.1, using negative height images is glitchy
-	for (int y1 = 0, y2 = bm.bmHeight - 1; y1 < y2; y1++, y2--)
-	{
-		BYTE *scan1 = &pBytes[y1 * pitch], *scan2 = &pBytes[y2 * pitch];
-		DWORD *scan1D = (DWORD*) scan1, *scan2D = (DWORD*) scan2;
-
-		for (int x = 0; x * 4 < pitch; x++) {
-			std::swap(scan1D[x], scan2D[x]);
-		}
-	}
-
+	pBytes = pixels;
 	return true;
 }
 

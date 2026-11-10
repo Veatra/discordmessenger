@@ -16,3 +16,6 @@ keep/
 # Local diagnostic output
 DiscordMessenger-diagnostics.txt*
 DiscordMessenger-loader-report.txt
+
+__pycache__/
+*.pyc

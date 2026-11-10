@@ -26,7 +26,9 @@
   `.github/workflows/build.yml` for the current build workflow.
 - This fork targets Windows 8.1 (`_WIN32_WINNT`/`WINVER=0x0603`) and retains
   C++11. Do not reintroduce pre-8.1 UI/resource fallbacks or add Windows 10-only
-  APIs. Keep shared dependency wrappers unless their removal is validated.
+  APIs. Builds are Unicode-only; do not restore ANSI configurations/artifacts.
+  Keep the known-working PE loader header at 6.0 independently of the API target.
+  Keep shared dependency wrappers unless their removal is validated.
 - Keep MinGW and Visual Studio source lists consistent when adding, removing,
   or renaming files. Do not edit vendored libraries or submodule revisions unless
   required by the task.
@@ -42,7 +44,7 @@ Run commands from the repository root unless stated otherwise.
 3. A representative Unicode release build with WebP support is:
 
    ```sh
-   make -j4 all DEBUG=no UNICODE=yes
+   make -j4 all DEBUG=no
    ```
 
    It requires `OPENSSL_DIR` pointing to the Windows OpenSSL libraries and
@@ -52,14 +54,14 @@ Run commands from the repository root unless stated otherwise.
 4. When WebP is unavailable, the supported optional fallback is:
 
    ```sh
-   make -j4 all DEBUG=no UNICODE=yes DISABLE_WEBP=1 USER_DEFINES=-DWEBP_DISABLED
+   make -j4 all DEBUG=no DISABLE_WEBP=1 USER_DEFINES=-DWEBP_DISABLED
    ```
 
    Both options are required by the current code. The Makefile checks `1`,
-   despite the README mentioning `yes`. Disclose disabled WebP in build reports.
+   Disclose disabled WebP in build reports.
 5. Specify `all` explicitly: included dependency files can otherwise affect the
    default target. Use a separate `BUILD_DIR` and `BIN_DIR`, or clear only the
-   relevant generated outputs, when switching Unicode/ANSI or other build flags.
+   relevant generated outputs, when changing build flags.
    Remove stale generated dependency files if they reference deleted headers.
 6. Run relevant existing tests and add focused regression coverage when useful
    for behavior changes. Do not mistake third-party dependency tests for an
@@ -67,6 +69,8 @@ Run commands from the repository root unless stated otherwise.
    validation but are not guaranteed to exist in another environment.
 7. Run `tests/typing_expiry.cpp` with a native C++ compiler and
    `python3 tests/status_bar_timers.py` when changing typing-indicator behavior.
+   Run `tests/diagnostics_log.py`, `tests/windows_package.py`, and
+   `tests/bitmap_readback.py` with Python for logging, packaging, or clipboard edits.
 8. Compilation does not validate Windows GUI or live Discord behavior. State
    precisely what was tested and what remains untested. Do not require real
    Discord credentials for compilation or isolated tests.
@@ -74,6 +78,7 @@ Run commands from the repository root unless stated otherwise.
 The executable is `bin/DiscordMessenger.exe`. For a runnable Windows bundle,
 inspect its imported DLLs and include the required matching Windows libraries
 beside it. Do not assume CI packaging covers every toolchain's runtime DLLs.
+Run `tools/check_windows_package.py` on prepared packages.
 Do not commit generated binaries; publish release assets only when requested.
 
 ## Connection and UI behavior

@@ -9,9 +9,7 @@
 #include <userenv.h>
 #include <shlobj.h>
 #include <commctrl.h>
-#ifdef NEW_WINDOWS
 #include <shlwapi.h>
-#endif
 
 #include <sstream>
 #include <cassert>
@@ -22,7 +20,7 @@
 #include <list>
 #include <map>
 
-#if defined NEW_WINDOWS && defined UNICODE && !defined MINGW_SPECIFIC_HACKS
+#ifndef MINGW_SPECIFIC_HACKS
 #define USE_SPEECH
 #endif
 

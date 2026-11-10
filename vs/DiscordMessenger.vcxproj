@@ -1,14 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="DebugAnsi|Win32">
-      <Configuration>DebugAnsi</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="DebugAnsi|x64">
-      <Configuration>DebugAnsi</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
     <ProjectConfiguration Include="DebugAsan|Win32">
       <Configuration>DebugAsan</Configuration>
       <Platform>Win32</Platform>
@@ -28,14 +20,6 @@
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
       <Platform>Win32</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="ReleaseAnsi|Win32">
-      <Configuration>ReleaseAnsi</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="ReleaseAnsi|x64">
-      <Configuration>ReleaseAnsi</Configuration>
-      <Platform>x64</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="Release|Win32">
       <Configuration>Release</Configuration>
@@ -71,12 +55,6 @@
     <PlatformToolset>v141_xp</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugAnsi|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v141_xp</PlatformToolset>
-    <CharacterSet>NotSet</CharacterSet>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugAsan|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
@@ -91,13 +69,6 @@
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseAnsi|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v141_xp</PlatformToolset>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>NotSet</CharacterSet>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
@@ -109,12 +80,6 @@
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugAnsi|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
-    <CharacterSet>NotSet</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugAsan|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -129,13 +94,6 @@
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseAnsi|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>NotSet</CharacterSet>
-  </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
@@ -147,16 +105,10 @@
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='DebugNoIOCP|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='DebugAnsi|Win32'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='DebugAsan|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseAnsi|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -165,16 +117,10 @@
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='DebugNoIOCP|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='DebugAnsi|x64'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='DebugAsan|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseAnsi|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
@@ -184,11 +130,6 @@
     <IntDir>obj\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugNoIOCP|Win32'">
-    <OutDir>$(SolutionDir)..\bin\$(Configuration)\</OutDir>
-    <GenerateManifest>false</GenerateManifest>
-    <IntDir>obj\$(Configuration)\</IntDir>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugAnsi|Win32'">
     <OutDir>$(SolutionDir)..\bin\$(Configuration)\</OutDir>
     <GenerateManifest>false</GenerateManifest>
     <IntDir>obj\$(Configuration)\</IntDir>
@@ -203,16 +144,7 @@
     <IntDir>obj\$(Configuration)\</IntDir>
     <GenerateManifest>false</GenerateManifest>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseAnsi|Win32'">
-    <OutDir>$(SolutionDir)..\bin\$(Configuration)\</OutDir>
-    <IntDir>obj\$(Configuration)\</IntDir>
-    <GenerateManifest>false</GenerateManifest>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <GenerateManifest>false</GenerateManifest>
-    <OutDir>$(SolutionDir)..\bin\x64_$(Configuration)\</OutDir>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugAnsi|x64'">
     <GenerateManifest>false</GenerateManifest>
     <OutDir>$(SolutionDir)..\bin\x64_$(Configuration)\</OutDir>
   </PropertyGroup>
@@ -225,10 +157,6 @@
     <OutDir>$(SolutionDir)..\bin\x64_$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <GenerateManifest>false</GenerateManifest>
-    <OutDir>$(SolutionDir)..\bin\x64_$(Configuration)\</OutDir>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseAnsi|x64'">
     <GenerateManifest>false</GenerateManifest>
     <OutDir>$(SolutionDir)..\bin\x64_$(Configuration)\</OutDir>
   </PropertyGroup>
@@ -256,25 +184,6 @@
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>USE_IPROGS_REIMPL;USE_IPROGRAMS_TERMINATE;ASIO_DISABLE_WINDOWS_OBJECT_HANDLE;_WIN32_WINNT=0x0603;WINVER=0x0603;_WIN32_IE=0x0600;NOMINMAX;_CRT_SECURE_NO_WARNINGS;ASIO_SEPARATE_COMPILATION;ASIO_STANDALONE;_WEBSOCKETPP_CPP11_STL_;WIN32;DISCORD_MESSENGER;_DEBUG;_CONSOLE;ASIO_DISABLE_IOCP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>false</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\src;$(SolutionDir)..\src\core;$(SolutionDir)..\deps;$(SolutionDir)..\deps\asio;$(SolutionDir)..\deps\mwas\include;$(OPENSSL_INSTALL)\include</AdditionalIncludeDirectories>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <PreprocessToFile>false</PreprocessToFile>
-    </ClCompile>
-    <Link>
-      <SubSystem>Windows</SubSystem>
-      <MinimumRequiredVersion>6.00</MinimumRequiredVersion>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)\libs;$(OPENSSL_INSTALL)\lib\VC\x86\MDd;$(OPENSSL_INSTALL)\lib;$(OPENSSL_INSTALL);</AdditionalLibraryDirectories>
-      <AdditionalDependencies>libwebp.lib;libcrypto.lib;libssl.lib;ws2_32.lib;msimg32.lib;shlwapi.lib;comctl32.lib;comdlg32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <SuppressStartupBanner>true</SuppressStartupBanner>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugAnsi|Win32'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>USE_IPROGS_REIMPL;USE_IPROGRAMS_TERMINATE;ASIO_DISABLE_WINDOWS_OBJECT_HANDLE;_WIN32_WINNT=0x0603;WINVER=0x0603;_WIN32_IE=0x0600;NOMINMAX;_CRT_SECURE_NO_WARNINGS;ASIO_SEPARATE_COMPILATION;ASIO_STANDALONE;_WEBSOCKETPP_CPP11_STL_;WIN32;DISCORD_MESSENGER;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>false</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)..\src;$(SolutionDir)..\src\core;$(SolutionDir)..\deps;$(SolutionDir)..\deps\asio;$(SolutionDir)..\deps\mwas\include;$(OPENSSL_INSTALL)\include</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -330,28 +239,6 @@
       <AdditionalDependencies>libwebp.lib;libcrypto.lib;libssl.lib;ws2_32.lib;msimg32.lib;shlwapi.lib;comctl32.lib;comdlg32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseAnsi|Win32'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>USE_IPROGS_REIMPL;USE_IPROGRAMS_TERMINATE;ASIO_DISABLE_WINDOWS_OBJECT_HANDLE;_WIN32_WINNT=0x0603;WINVER=0x0603;_WIN32_IE=0x0600;NOMINMAX;_CRT_SECURE_NO_WARNINGS;ASIO_SEPARATE_COMPILATION;ASIO_STANDALONE;_WEBSOCKETPP_CPP11_STL_;WIN32;DISCORD_MESSENGER;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>false</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\src;$(SolutionDir)..\src\core;$(SolutionDir)..\deps;$(SolutionDir)..\deps\asio;$(SolutionDir)..\deps\mwas\include;$(OPENSSL_INSTALL)\include</AdditionalIncludeDirectories>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <PreprocessToFile>false</PreprocessToFile>
-    </ClCompile>
-    <Link>
-      <SubSystem>Windows</SubSystem>
-      <MinimumRequiredVersion>6.00</MinimumRequiredVersion>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)\libs;$(OPENSSL_INSTALL)\lib\VC\x86\MD;$(OPENSSL_INSTALL)\lib;$(OPENSSL_INSTALL);</AdditionalLibraryDirectories>
-      <AdditionalDependencies>libwebp.lib;libcrypto.lib;libssl.lib;ws2_32.lib;msimg32.lib;shlwapi.lib;comctl32.lib;comdlg32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-    </Link>
-  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -376,23 +263,6 @@
       <PreprocessorDefinitions>IS_64_BIT;FKG_FORCED_USAGE;USE_IPROGS_REIMPL;USE_IPROGRAMS_TERMINATE;ASIO_DISABLE_WINDOWS_OBJECT_HANDLE;_WIN32_WINNT=0x0603;WINVER=0x0603;_WIN32_IE=0x0600;NOMINMAX;_CRT_SECURE_NO_WARNINGS;ASIO_SEPARATE_COMPILATION;ASIO_STANDALONE;_WEBSOCKETPP_CPP11_STL_;WIN32;DISCORD_MESSENGER;_DEBUG;_CONSOLE;ASIO_DISABLE_IOCP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)..\deps;$(SolutionDir)..\deps\asio;$(SolutionDir)..\deps\mwas\include;$(OPENSSL_INSTALL64)\include</AdditionalIncludeDirectories>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-    </ClCompile>
-    <Link>
-      <SubSystem>Windows</SubSystem>
-      <MinimumRequiredVersion>6.00</MinimumRequiredVersion>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>libwebp.lib;libcrypto.lib;libssl.lib;ws2_32.lib;msimg32.lib;shlwapi.lib;comctl32.lib;comdlg32.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)\libs\x64;$(OPENSSL_INSTALL64)\lib\VC\x64\MDd</AdditionalLibraryDirectories>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugAnsi|x64'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>IS_64_BIT;FKG_FORCED_USAGE;USE_IPROGS_REIMPL;USE_IPROGRAMS_TERMINATE;ASIO_DISABLE_WINDOWS_OBJECT_HANDLE;_WIN32_WINNT=0x0603;WINVER=0x0603;_WIN32_IE=0x0600;NOMINMAX;_CRT_SECURE_NO_WARNINGS;ASIO_SEPARATE_COMPILATION;ASIO_STANDALONE;_WEBSOCKETPP_CPP11_STL_;WIN32;DISCORD_MESSENGER;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\src;$(SolutionDir)..\src\core;$(SolutionDir)..\deps;$(SolutionDir)..\deps\asio;$(SolutionDir)..\deps\mwas\include;$(OPENSSL_INSTALL64)\include</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
@@ -429,27 +299,6 @@
       <PreprocessorDefinitions>IS_64_BIT;FKG_FORCED_USAGE;USE_IPROGS_REIMPL;USE_IPROGRAMS_TERMINATE;ASIO_DISABLE_WINDOWS_OBJECT_HANDLE;_WIN32_WINNT=0x0603;WINVER=0x0603;_WIN32_IE=0x0600;NOMINMAX;_CRT_SECURE_NO_WARNINGS;ASIO_SEPARATE_COMPILATION;ASIO_STANDALONE;_WEBSOCKETPP_CPP11_STL_;WIN32;DISCORD_MESSENGER;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)..\src;$(SolutionDir)..\src\core;$(SolutionDir)..\deps;$(SolutionDir)..\deps\asio;$(SolutionDir)..\deps\mwas\include;$(OPENSSL_INSTALL64)\include</AdditionalIncludeDirectories>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-    </ClCompile>
-    <Link>
-      <SubSystem>Windows</SubSystem>
-      <MinimumRequiredVersion>6.00</MinimumRequiredVersion>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>libwebp.lib;libcrypto.lib;libssl.lib;ws2_32.lib;msimg32.lib;shlwapi.lib;comctl32.lib;comdlg32.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)\libs\x64;$(OPENSSL_INSTALL64)\lib\VC\x64\MD</AdditionalLibraryDirectories>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseAnsi|x64'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>IS_64_BIT;FKG_FORCED_USAGE;USE_IPROGS_REIMPL;USE_IPROGRAMS_TERMINATE;ASIO_DISABLE_WINDOWS_OBJECT_HANDLE;_WIN32_WINNT=0x0603;WINVER=0x0603;_WIN32_IE=0x0600;NOMINMAX;_CRT_SECURE_NO_WARNINGS;ASIO_SEPARATE_COMPILATION;ASIO_STANDALONE;_WEBSOCKETPP_CPP11_STL_;WIN32;DISCORD_MESSENGER;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\deps;$(SolutionDir)..\deps\asio;$(SolutionDir)..\deps\mwas\include;$(OPENSSL_INSTALL64)\include</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>

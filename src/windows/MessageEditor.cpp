@@ -775,8 +775,6 @@ void MessageEditor::Layout()
 	bool isUploadingAllowed = IsUploadingAllowed();
 	RECT rcButton = rc;
 	rcButton.right = rcButton.left + ScaleByDPI(30);
-	if (NT31SimplifiedInterface())
-		rcButton.right += m_uploadTextWidth;
 
 	if (isUploadingAllowed)
 	{
@@ -942,7 +940,7 @@ MessageEditor* MessageEditor::Create(HWND hwnd, LPRECT pRect)
 	);
 
 
-	int bs_icon = NT31SimplifiedInterface() ? 0 : BS_ICON;
+	int bs_icon = BS_ICON;
 	LPCTSTR editingText  = TmGetTString(IDS_EDITING_MESSAGE);
 	LPCTSTR replyingText = TmGetTString(IDS_REPLYING_TO_MESSAGE);
 	LPCTSTR mentionText  = TmGetTString(IDS_MENTION);
@@ -982,10 +980,6 @@ MessageEditor* MessageEditor::Create(HWND hwnd, LPRECT pRect)
 	newThis->m_jumpTextWidth = rcMeasure.right - rcMeasure.left + 1;
 
 	SetRectEmpty(&rcMeasure);
-	DrawText(hdc, uploadText, -1, &rcMeasure, DT_CALCRECT);
-	newThis->m_uploadTextWidth = rcMeasure.right - rcMeasure.left + 1;
-
-	SetRectEmpty(&rcMeasure);
 	DrawText(hdc, jumpPresText, -1, &rcMeasure, DT_CALCRECT);
 	newThis->m_jumpPresentWidth = rcMeasure.right - rcMeasure.left + ScaleByDPI(20);
 	newThis->m_jumpPresentHeight = 0; // rcMeasure.bottom - rcMeasure.top + ScaleByDPI(5);
@@ -993,23 +987,12 @@ MessageEditor* MessageEditor::Create(HWND hwnd, LPRECT pRect)
 	SelectObject(hdc, objOld);
 	ReleaseDC(newThis->m_hwnd, hdc);
 
-	// note : Windows XP only
-#ifdef NEW_WINDOWS
-	// only works on single line text for some reason?
-	//SendMessage(newThis->m_hwnd, EM_SETCUEBANNER, TRUE, (LPARAM)L"Type a message...");
-#endif
 
 	// subclass the edit control
 	m_editWndProc = (WNDPROC) SetWindowLongPtr(newThis->m_edit_hwnd, GWLP_WNDPROC, (LONG_PTR)&MessageEditor::EditWndProc);
 
 	SendMessage(newThis->m_edit_hwnd, WM_SETFONT, (WPARAM)g_SendButtonFont, TRUE);
 	SendMessage(newThis->m_send_hwnd, WM_SETFONT, (WPARAM)g_SendButtonFont, TRUE);
-
-	if (NT31SimplifiedInterface()) {
-		SendMessage(newThis->m_mentionJump_hwnd,   WM_SETFONT, (WPARAM)g_SendButtonFont, TRUE);
-		SendMessage(newThis->m_mentionCancel_hwnd, WM_SETFONT, (WPARAM)g_SendButtonFont, TRUE);
-		SendMessage(newThis->m_btnUpload_hwnd,     WM_SETFONT, (WPARAM)g_SendButtonFont, TRUE);
-	}
 
 	SendMessage(newThis->m_send_hwnd,          BM_SETIMAGE, (WPARAM)IMAGE_ICON, (LPARAM)g_SendIcon);
 	SendMessage(newThis->m_btnUpload_hwnd,     BM_SETIMAGE, (WPARAM)IMAGE_ICON, (LPARAM)g_UploadIcon);

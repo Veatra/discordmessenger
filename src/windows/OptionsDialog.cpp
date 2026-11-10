@@ -4,9 +4,7 @@
 #include "Main.hpp"
 #include "config/LocalSettings.hpp"
 
-#ifdef NEW_WINDOWS
 #include <uxtheme.h>
-#endif
 #include <commdlg.h>
 
 const eMessageStyle g_indexToMessageStyle[] = {
@@ -80,7 +78,6 @@ DLGTEMPLATEEX* LockDialogResource(LPCTSTR lpszResName)
 	return (DLGTEMPLATEEX*)LockResource(hglb);
 }
 
-#ifdef NEW_WINDOWS
 // XXX: Shim to avoid linking against uxtheme.lib
 HRESULT XEnableThemeDialogTexture(HWND hWnd, DWORD dwFlags)
 {
@@ -109,7 +106,6 @@ HRESULT XEnableThemeDialogTexture(HWND hWnd, DWORD dwFlags)
 
 	return etdt(hWnd, dwFlags);
 }
-#endif
 
 void OptionsInitPage(HWND hwndDlg, int pageNum)
 {
@@ -287,9 +283,7 @@ void WINAPI OnChildDialogInit(HWND hwndDlg)
 		(pHdr->rcDisplay.bottom - pHdr->rcDisplay.top),
 		SWP_SHOWWINDOW);
 
-#ifdef NEW_WINDOWS
 	XEnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
-#endif
 
 	int pageNum = pHdr->pageNum;
 
@@ -661,8 +655,6 @@ INT_PTR CALLBACK OptionsChildDialogProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 //
 void OnSelChanged(HWND hwndDlg)
 {
-	if (NT31SimplifiedInterface())
-		return;
 
 	// Get the dialog header data.
 	DialogHeader *pHdr = (DialogHeader*) GetWindowLongPtr(hwndDlg, GWLP_USERDATA);
@@ -690,17 +682,6 @@ HRESULT OnPreferenceDialogInit(HWND hWnd)
 	iccex.dwICC  = ICC_TAB_CLASSES;
 	InitCommonControlsEx(&iccex);
 #endif
-
-	bool simplifiedUI = NT31SimplifiedInterface();
-
-	if (simplifiedUI)
-	{
-		// The simplified UI only consists of controls, no tabs.
-		for (int i = PG_FIRST; i < PG_PAGE_COUNT; i++)
-			OptionsInitPage(hWnd, i);
-
-		return 0;
-	}
 
 	DWORD dwDlgBase = GetDialogBaseUnits();
 	int cxMargin = LOWORD(dwDlgBase) / 4;
@@ -814,16 +795,9 @@ static INT_PTR CALLBACK DialogProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 		}
 		case WM_COMMAND:
 		{
-			// The non-simplified interface can't handle commands.
-			if (!NT31SimplifiedInterface())
-				return 0L;
-
-			// Just do it for every page... if it doesn't recognize the button ID then it just does nothing
-			for (int i = PG_FIRST; i < PG_PAGE_COUNT; i++)
-				OptionsHandleCommand(hWnd, hWnd, i, uMsg, wParam, lParam);
-
-			break;
+			return 0L;
 		}
+
 		case WM_CLOSE:
 		{
 			EndDialog(hWnd, OPTIONS_RESULT_OK);

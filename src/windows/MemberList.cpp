@@ -14,7 +14,7 @@ WNDCLASS MemberList::g_MemberListClass;
 
 static int GetProfileBorderSize()
 {
-	return ScaleByDPI(Supports32BitIcons() ? (PROFILE_PICTURE_SIZE_DEF + 12) : 64);
+	return ScaleByDPI((PROFILE_PICTURE_SIZE_DEF + 12));
 }
 
 MemberList::~MemberList()
@@ -54,9 +54,7 @@ void MemberList::ClearMembers()
 	m_imageIDs.clear();
 	ListView_DeleteAllItems(m_listHwnd);
 	ListView_RemoveAllGroups(m_listHwnd);
-#ifdef UNICODE
 	ListView_EnableGroupView(m_listHwnd, true);
-#endif
 }
 
 void MemberList::SetGuild(Snowflake g)
@@ -101,7 +99,6 @@ void MemberList::Update()
 			// not worth it
 			continue;
 
-#ifdef UNICODE
 		LPTSTR strName = ConvertCppStringToTString(pGuild->GetGroupName(pGroup->m_groupId) + " - " + std::to_string(pGroup->m_groupCount));
 		LVGROUP grpz{};
 		grpz.cbSize = sizeof(LVGROUP);
@@ -113,7 +110,6 @@ void MemberList::Update()
 		m_groups.push_back(pGroup->m_groupId);
 		m_grpToGrpIdx[pGroup->m_groupId] = m_nextGroup;
 		m_nextGroup++;
-#endif
 	}
 
 	// Now add each non-group member
@@ -125,9 +121,7 @@ void MemberList::Update()
 
 		LVITEM lvi{};
 		int groupId = 0;
-#ifdef UNICODE
 		groupId = LVIF_GROUPID;
-#endif
 
 		TCHAR testStr[] = TEXT("");
 
@@ -140,9 +134,7 @@ void MemberList::Update()
 		lvi.state = 0;
 		lvi.cColumns = _countof(g_columnIndices);
 		lvi.puColumns = g_columnIndices;
-#ifdef UNICODE
 		lvi.iGroupId = m_grpToGrpIdx[pMember->m_groupId];
-#endif
 
 		m_usrToUsrIdx[pMember->m_user] = m_nextItem;
 		m_items.push_back(pMember->m_user);
@@ -250,15 +242,11 @@ void MemberList::UpdateMembers(std::set<Snowflake>& mems)
 
 void MemberList::Initialize()
 {
-#ifdef UNICODE
 	m_origListWndProc = (WNDPROC) GetWindowLongPtr(m_listHwnd, GWLP_WNDPROC);
 	SetWindowLongPtr(m_listHwnd, GWLP_USERDATA, (LONG_PTR) this);
 	SetWindowLongPtr(m_listHwnd, GWLP_WNDPROC,  (LONG_PTR) ListWndProc);
-#endif
 
-#ifdef NEW_WINDOWS
 	ListView_SetExtendedListViewStyleEx(m_listHwnd, LVS_EX_DOUBLEBUFFER, LVS_EX_DOUBLEBUFFER);
-#endif
 
 	TCHAR nameStr[] = TEXT("Name");
 	LVCOLUMN col{};
@@ -398,8 +386,7 @@ LRESULT MemberList::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				int sz = ScaleByDPI(PROFILE_PICTURE_SIZE_DEF + 12);
 				int szDraw = GetProfileBorderSize();
 
-				if (!NT31SimplifiedInterface())
-					ri::DrawIconEx(hdc, rcItem.left, rcItem.top, g_ProfileBorderIcon, szDraw, szDraw, 0, NULL, DI_NORMAL | DI_COMPAT);
+				ri::DrawIconEx(hdc, rcItem.left, rcItem.top, g_ProfileBorderIcon, szDraw, szDraw, 0, NULL, DI_NORMAL | DI_COMPAT);
 
 				// draw profile picture
 				bool hasAlpha = false;

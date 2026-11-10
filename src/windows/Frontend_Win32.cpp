@@ -619,8 +619,8 @@ int Frontend_Win32::GetDefaultHeight()
 
 bool Frontend_Win32::UseGradientByDefault()
 {
-	// Are we using Windows 5.00 at least? (2000)
-	return LOWORD(GetVersion()) >= 5;
+	// All supported Windows versions provide gradient drawing.
+	return true;
 }
 
 static std::string LoadEntireFile(const std::string& fileNameUTF8)

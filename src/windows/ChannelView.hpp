@@ -22,6 +22,7 @@ private:
 		int m_childCount;
 	};
 
+	HIMAGELIST m_treeImages = NULL;
 	HWND m_hwndParent;
 	std::vector<ChannelMember> m_channels;
 	Snowflake m_currentChannel = 0;

@@ -6,7 +6,7 @@ WNDCLASS ProfileView::g_ProfileViewClass;
 
 static int GetProfileBorderSize()
 {
-	return ScaleByDPI(Supports32BitIcons() ? (PROFILE_PICTURE_SIZE_DEF + 12) : 64);
+	return ScaleByDPI((PROFILE_PICTURE_SIZE_DEF + 12));
 }
 
 ProfileView::ProfileView()
@@ -109,8 +109,7 @@ void ProfileView::Paint(HDC hdc)
 	rcProfile.right = pfpX + pfpBorderSize - ScaleByDPI(6);
 	FillRect(hdc, &rcProfile, ri::GetSysColorBrush(PROFILE_VIEW_COLOR));
 
-	if (!NT31SimplifiedInterface())
-		ri::DrawIconEx(hdc, pfpX - ScaleByDPI(6), pfpY - ScaleByDPI(4), g_ProfileBorderIcon, pfpBorderSizeDrawn, pfpBorderSizeDrawn, 0, NULL, DI_NORMAL | DI_COMPAT);
+	ri::DrawIconEx(hdc, pfpX - ScaleByDPI(6), pfpY - ScaleByDPI(4), g_ProfileBorderIcon, pfpBorderSizeDrawn, pfpBorderSizeDrawn, 0, NULL, DI_NORMAL | DI_COMPAT);
 
 	DrawBitmap(hdc, hbm, pfpX, pfpY, NULL, CLR_NONE, pfpSize, 0, hasAlpha);
 

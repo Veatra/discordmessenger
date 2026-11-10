@@ -55,7 +55,7 @@ bool ProfilePopout::Layout(HWND hWnd, SIZE& fullSize)
 		bShouldNoteBeEditable = true;
 	}
 
-	std::string pfx = NT31SimplifiedInterface() ? "DC: " : "";
+	std::string pfx = "";
 
 	Guild* gld = GetDiscordInstance()->GetGuild(m_guild);
 	GuildMember* gm = nullptr;
@@ -359,11 +359,7 @@ bool ProfilePopout::Layout(HWND hWnd, SIZE& fullSize)
 			hChild = GetDlgItem(hWnd, IDC_ICON_DISCORD);
 
 			int jais = joinedAtIconSize;
-			if (NT31SimplifiedInterface()) {
-				ShowWindow(hChild, SW_HIDE);
-				jais = 0;
-			}
-			else {
+			{
 				ShowWindow(hChild, SW_SHOW);
 				MoveWindow(hChild, pos.x, pos.y, joinedAtIconSize, joinedAtIconSize, TRUE);
 

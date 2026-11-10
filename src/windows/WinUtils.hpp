@@ -24,11 +24,7 @@
 #define DMCDF_NODLGEX  0x0200
 #define DMCDF_NODRIEX  0x0400
 
-#ifdef UNICODE
 #define WAsnprintf _snwprintf
-#else
-#define WAsnprintf _snprintf
-#endif
 
 #ifdef _MSC_VER
 #define NORETURN __declspec(noreturn)
@@ -38,10 +34,6 @@
 
 struct NetRequest;
 
-#if _WIN32_WINNT < 0x0600
-// Vista definitions
-#define WM_MOUSEHWHEEL 0x020E
-#endif // _WIN32_WINNT
 
 #ifdef _MSC_VER
 
@@ -67,13 +59,8 @@ LPTSTR ConvertToTStringAddCR(const std::string& str, size_t* lenOut = NULL);
 void ConvertCppStringToTCharArray(const std::string& sstr, TCHAR* buff, size_t szMax);
 std::string MakeStringFromEditData(LPCTSTR tstr);
 std::string MakeStringFromUnicodeString(LPCWSTR wstr);
-#ifdef UNICODE
 #define MakeStringFromTString(x) MakeStringFromUnicodeString(x)
 #define ASCIIZ_STR_FMT "%S"
-#else
-#define MakeStringFromTString(x) std::string(x)
-#define ASCIIZ_STR_FMT "%s"
-#endif // UNICODE
 
 // Clipboard utils
 void CopyStringToClipboard(const std::string& str);
@@ -106,8 +93,6 @@ void GetChildRect(HWND parent, HWND child, LPRECT rect);
 void DownloadFileDialog(HWND hWnd, const std::string& url, const std::string& fileName);
 void DownloadOnRequestFail(HWND hWnd, NetRequest* pRequest);
 SIZE EnsureMaximumSize(int width, int height, int maxWidth, int maxHeight);
-inline bool Supports32BitIcons() { return true; }
-inline bool SupportsDialogEx() { return true; }
 void InitializeStatusIcons();
 void DrawMentionStatus(HDC hdc, int x, int y, int mentionCount);
 void DrawActivityStatus(HDC hdc, int x, int y, eActiveStatus status);
@@ -126,7 +111,6 @@ void PrepareCutDownFlags(LPSTR cmdLine);
 int GetCutDownFlags();
 HCURSOR GetHandCursor();
 
-#define NT31SimplifiedInterface() (!SupportsDialogEx())
 
 #ifdef USE_DEBUG_PRINTS
 void DbgPrintW(const char* fmt, ...);

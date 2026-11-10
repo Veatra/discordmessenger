@@ -120,15 +120,15 @@ make -j12
 
 Use the following command line:
 ```
-make -j4 all DEBUG=no UNICODE=yes
+make -j4 all DEBUG=no
 ```
 
 If you did not compile LibWebP, add both `DISABLE_WEBP=1` and
 `USER_DEFINES=-DWEBP_DISABLED`. This disables WebP image decoding; the standard
 build retains it. Always use the explicit `all` target.
 
-For an ANSI build, use `UNICODE=no` with separate `BUILD_DIR` and `BIN_DIR`
-values to avoid reusing Unicode objects. Keep the Windows 8.1 API baseline;
+ANSI builds have been removed; all builds use Unicode Windows APIs.
+Keep the Windows 8.1 API baseline;
 do not lower `WINVER`. The PE loader header uses a conservative 6.0 version,
 independent of the Windows 8.1 API target.
 
@@ -253,3 +253,18 @@ way of running PowerShell scripts. Compare file hashes with `SHA256SUMS.txt` in
 the package. If a clean package still fails, a Windows loader trace (for example
 Process Monitor) is needed to identify the rejected DLL; the launcher alone
 cannot establish which system dependency failed.
+
+## Unicode-only builds and package checks
+
+CI produces only the Unicode `PRE-MinGW` artifact. The `PRE-MinGWA` artifact and
+Visual Studio `DebugAnsi`/`ReleaseAnsi` configurations are removed. MinGW rejects
+`UNICODE=no` rather than silently producing an unsupported binary. This does not
+remove explicit ANSI APIs needed by third-party libraries or change text stored
+as UTF-8 in Discord payloads and settings.
+
+The build retains the working PE loader header of 6.0 and the Windows 8.1 API
+target of 0x0603. Do not raise the loader header merely to match the API target.
+`python3 tools/check_windows_package.py bin/prepared` verifies package bitness,
+the executable header, and bundled compiler/library DLL dependencies. CI includes
+the pthread runtime DLL, launcher report script, and SHA-256 manifest as well as
+the OpenSSL DLLs. These checks do not replace testing on real Windows.

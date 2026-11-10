@@ -5,4 +5,6 @@
 #error Discord Messenger requires a Windows 8.1 (0x0603) or newer build target.
 #endif
 
-#define NEW_WINDOWS
+#if !defined(UNICODE) || !defined(_UNICODE)
+#error Discord Messenger requires a Unicode build (UNICODE and _UNICODE).
+#endif

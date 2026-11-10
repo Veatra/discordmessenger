@@ -4,8 +4,11 @@
 # User-configurable variables
 # -----------------------------
 DEBUG               ?= yes   # yes = build debug with symbols, no = release
-UNICODE             ?= yes   # yes = build Unicode, no = ANSI
 IS_MINGW_ON_WINDOWS ?= no    # yes if compiling on native Windows with MinGW
+
+ifneq ($(filter no 0 false,$(UNICODE)),)
+$(error ANSI builds are no longer supported; omit UNICODE=no)
+endif
 
 # Optional environment overrides
 USER_INC_DIRS ?=
@@ -58,7 +61,7 @@ endif
 # Print info
 $(info Discord Messenger makefile)
 $(info Debug: $(DEBUG))
-$(info Unicode: $(UNICODE))
+$(info Unicode: required)
 # -----------------------------
 # Include and library paths
 # -----------------------------
@@ -109,14 +112,8 @@ ifneq ($(COMMIT_HASH),undefined)
 	DEFINES += -DGIT_COMMIT_HASH=$(COMMIT_HASH)
 endif
 
-# Unicode defines
-# note: USE_IPROGS_REIMPL is defined so that iprogsthreads will use the mwas
-# version of certain APIs such as TryEnterCriticalSection
-ifeq ($(UNICODE), yes)
-	UNICODE_DEF = -DUNICODE -D_UNICODE
-else
-	UNICODE_DEF =
-endif
+# All supported Windows versions use Unicode APIs.
+UNICODE_DEF = -DUNICODE -D_UNICODE
 
 # Debug/release flags
 ifeq ($(DEBUG), yes)

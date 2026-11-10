@@ -8,11 +8,7 @@
 #else
 #define UsedCompiler "MinGW"
 #endif
-#ifdef UNICODE
 #define ActiveCharset "Unicode"
-#else
-#define ActiveCharset "ANSI"
-#endif
 #ifdef _DEBUG
 #define ActiveProfile "Debug"
 #else
@@ -202,7 +198,6 @@ NORETURN void AbortMessage(const char* message, ...)
 	ri::GetVersionEx(&osvi);
 
 	const char* csd = nullptr;
-#ifdef UNICODE
 	constexpr size_t CNT = sizeof(osvi.szCSDVersion) / sizeof(osvi.szCSDVersion[0]);
 	char smallerBuffer2[CNT];
 	for (int i = 0; i < CNT; i++) {
@@ -210,9 +205,6 @@ NORETURN void AbortMessage(const char* message, ...)
 		smallerBuffer2[i] = ((wchr < 0x7E && wchr >= 0x20) || wchr == 0) ? (char)wchr : '?';
 	}
 	csd = smallerBuffer2;
-#else
-	csd = osvi.szCSDVersion;
-#endif
 
 	if (strlen(csd) == 0)
 		csd = "nothing";

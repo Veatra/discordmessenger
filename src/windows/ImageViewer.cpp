@@ -235,20 +235,6 @@ LRESULT CALLBACK ImageViewerChildWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LP
 			WindowScrollXY(hWnd, diffLR, diffUD);
 			break;
 		}
-		case WM_RBUTTONUP:
-		{
-			if (!NT31SimplifiedInterface())
-				break;
-
-			// NT 3.1 doesn't implement WM_CONTEXTMENU, so send it ourselves
-			POINT pt;
-			pt.x = GET_X_LPARAM(lParam);
-			pt.y = GET_Y_LPARAM(lParam);
-			ClientToScreen(hWnd, &pt);
-
-			ImageViewerChildWndProc(hWnd, WM_CONTEXTMENU, (WPARAM)hWnd, MAKELPARAM(pt.x, pt.y));
-			break;
-		}
 		case WM_CONTEXTMENU:
 		{
 			int xPos = GET_X_LPARAM(lParam);

@@ -9,7 +9,7 @@ WNDCLASS ChannelView::g_ChannelViewClass;
 
 static int GetProfileBorderSize()
 {
-	return ScaleByDPI(Supports32BitIcons() ? (PROFILE_PICTURE_SIZE_DEF + 12) : 64);
+	return ScaleByDPI((PROFILE_PICTURE_SIZE_DEF + 12));
 }
 
 enum {
@@ -19,6 +19,11 @@ enum {
 
 ChannelView::~ChannelView()
 {
+	if (m_treeImages) {
+		if (m_treeHwnd) TreeView_SetImageList(m_treeHwnd, NULL, TVSIL_NORMAL);
+		ri::ImageList_Destroy(m_treeImages);
+		m_treeImages = NULL;
+	}
 	if (m_treeHwnd)
 	{
 		BOOL b = DestroyWindow(m_treeHwnd);
@@ -47,10 +52,7 @@ bool ChannelView::InitTreeView()
 
 	// Create the image list.
 	int flag = 0;
-	if (Supports32BitIcons())
-		flag = ILC_COLOR32 | ILC_MASK;
-	else
-		flag = ILC_COLOR4 | ILC_MASK;
+	flag = ILC_COLOR32 | ILC_MASK;
 
 	if ((himl = ri::ImageList_Create(ScaleByDPI(CX_BITMAP),
 		                             ScaleByDPI(CY_BITMAP),
@@ -80,7 +82,8 @@ bool ChannelView::InitTreeView()
 	}
 
 	// Associate the image list with the tree-view control.
-	// It will be destroyed when the window is destroyed.
+	// Tree views do not destroy their image lists; ChannelView owns it.
+	m_treeImages = himl;
 	TreeView_SetImageList(hwndTV, himl, TVSIL_NORMAL);
 
 	SetWindowFont(hwndTV, g_MessageTextFont, TRUE);
@@ -94,9 +97,7 @@ bool ChannelView::InitListView()
 	SetWindowLongPtr(m_listHwnd, GWLP_USERDATA, (LONG_PTR) this);
 	SetWindowLongPtr(m_listHwnd, GWLP_WNDPROC,  (LONG_PTR) ListWndProc);
 
-#ifdef NEW_WINDOWS
 	ListView_SetExtendedListViewStyleEx(m_listHwnd, LVS_EX_DOUBLEBUFFER, LVS_EX_DOUBLEBUFFER);
-#endif
 
 	TCHAR nameStr[] = TEXT("Name");
 	LVCOLUMN col{};

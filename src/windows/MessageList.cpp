@@ -21,7 +21,7 @@
 
 static int GetProfileBorderRenderSize()
 {
-	return ScaleByDPI(Supports32BitIcons() ? (PROFILE_PICTURE_SIZE_DEF + 12) : 64);
+	return ScaleByDPI((PROFILE_PICTURE_SIZE_DEF + 12));
 }
 
 static void DrawImageSpecial(HDC hdc, HImage* him, RECT rect, bool hasAlpha)
@@ -1936,17 +1936,8 @@ void MessageList::ConfirmOpenLink(const std::string& link)
 		buffer[_countof(buffer) - 1] = 0;
 		free(tstr);
 
-		if (LOBYTE(GetVersion()) >= 4)
-		{
-			// TODO: This actually works on NT 3.51 at first.  But the second time this causes an abort
-			if (MessageBoxHooked(g_Hwnd, buffer, TmGetTString(IDS_HOLD_UP_CONFIRM), MB_ICONWARNING | MB_OKCANCEL, IDOK, TmGetTString(IDS_EXCITED_YES)) != IDOK)
-				return;
-		}
-		else
-		{
-			if (MessageBox(g_Hwnd, buffer, TmGetTString(IDS_HOLD_UP_CONFIRM), MB_ICONWARNING | MB_YESNO) != IDYES)
-				return;
-		}
+		if (MessageBoxHooked(g_Hwnd, buffer, TmGetTString(IDS_HOLD_UP_CONFIRM), MB_ICONWARNING | MB_OKCANCEL, IDOK, TmGetTString(IDS_EXCITED_YES)) != IDOK)
+			return;
 	}
 
 	GetDiscordInstance()->LaunchURL(link);
@@ -2064,8 +2055,7 @@ int MessageList::DrawMessageReply(HDC hdc, MessageItem& item, RECT& rc)
 			int pfpX = rcReply.left;
 			int pfpY = rcReply.top + (rcReply.bottom - rcReply.top - pfpSize) / 2;
 			
-			if (!NT31SimplifiedInterface())
-				ri::DrawIconEx(hdc, pfpX - pfpBordOffX, pfpY - pfpBordOffY, g_ProfileBorderIcon, pfpBordSize, pfpBordSize, 0, NULL, DI_COMPAT | DI_NORMAL);
+			ri::DrawIconEx(hdc, pfpX - pfpBordOffX, pfpY - pfpBordOffY, g_ProfileBorderIcon, pfpBordSize, pfpBordSize, 0, NULL, DI_COMPAT | DI_NORMAL);
 			
 			bool hasAlpha = false;
 			GetAvatarCache()->AddImagePlace(refMsg.m_avatar, eImagePlace::AVATARS, refMsg.m_avatar, refMsg.m_author_snowflake);
@@ -2473,7 +2463,7 @@ void MessageList::DrawMessage(HDC hdc, MessageItem& item, RECT& msgRect, RECT& c
 	{
 		if (item.m_msg->m_type == MessageType::CHANNEL_HEADER)
 		{
-			if (Supports32BitIcons() && GetDeviceCaps(hdc, BITSPIXEL) >= 16)
+			if (GetDeviceCaps(hdc, BITSPIXEL) >= 16)
 			{
 				restoreOldMode = true;
 				oldMode = SetBkMode(hdc, TRANSPARENT);
@@ -2827,8 +2817,7 @@ void MessageList::DrawMessage(HDC hdc, MessageItem& item, RECT& msgRect, RECT& c
 			};
 			item.m_avatarRect = pfRect;
 
-			if (!NT31SimplifiedInterface())
-				ri::DrawIconEx(hdc, pfRect.left - offs1, pfRect.top - offs2, g_ProfileBorderIcon, szScaled, szScaled, 0, NULL, DI_NORMAL | DI_COMPAT);
+			ri::DrawIconEx(hdc, pfRect.left - offs1, pfRect.top - offs2, g_ProfileBorderIcon, szScaled, szScaled, 0, NULL, DI_NORMAL | DI_COMPAT);
 
 			if (inView)
 			{
@@ -3589,15 +3578,6 @@ HMENU MessageList::GetMenuForMessage(MessageItem* pRCMsg)
 	bool maySpeak  = !isActionMessage && !pRCMsg->m_msg->m_message.empty();
 	bool mayReply  = (!isActionMessage || IsReplyableActionMessage(pRCMsg->m_msg->m_type)) && maySendMessages;
 
-#ifdef OLD_WINDOWS
-	EnableMenuItem(menu, ID_DUMMYPOPUP_DELETEMESSAGE, mayDelete ? MF_ENABLED : MF_GRAYED);
-	EnableMenuItem(menu, ID_DUMMYPOPUP_EDITMESSAGE,   mayEdit   ? MF_ENABLED : MF_GRAYED);
-	EnableMenuItem(menu, ID_DUMMYPOPUP_PINMESSAGE,    mayPin    ? MF_ENABLED : MF_GRAYED);
-	EnableMenuItem(menu, ID_DUMMYPOPUP_UNPINMESSAGE,  mayUnpin  ? MF_ENABLED : MF_GRAYED);
-	EnableMenuItem(menu, ID_DUMMYPOPUP_SPEAKMESSAGE,  maySpeak  ? MF_ENABLED : MF_GRAYED);
-	EnableMenuItem(menu, ID_DUMMYPOPUP_COPYTEXT,      mayCopy   ? MF_ENABLED : MF_GRAYED);
-	EnableMenuItem(menu, ID_DUMMYPOPUP_REPLY,         mayReply  ? MF_ENABLED : MF_GRAYED);
-#else
 	if (!mayDelete) RemoveMenu(menu, ID_DUMMYPOPUP_DELETEMESSAGE, MF_BYCOMMAND);
 	if (!mayEdit)   RemoveMenu(menu, ID_DUMMYPOPUP_EDITMESSAGE,   MF_BYCOMMAND);
 	if (!mayPin)    RemoveMenu(menu, ID_DUMMYPOPUP_PINMESSAGE,    MF_BYCOMMAND);
@@ -3605,7 +3585,6 @@ HMENU MessageList::GetMenuForMessage(MessageItem* pRCMsg)
 	if (!maySpeak)  RemoveMenu(menu, ID_DUMMYPOPUP_SPEAKMESSAGE,  MF_BYCOMMAND);
 	if (!mayCopy)   RemoveMenu(menu, ID_DUMMYPOPUP_COPYTEXT,      MF_BYCOMMAND);
 	if (!mayReply)  RemoveMenu(menu, ID_DUMMYPOPUP_REPLY,         MF_BYCOMMAND);
-#endif
 
 	return menu;
 }
@@ -3853,20 +3832,6 @@ LRESULT CALLBACK MessageList::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 
 			pThis->Scroll(diffUpDown);
 
-			break;
-		}
-		case WM_RBUTTONUP:
-		{
-			if (!NT31SimplifiedInterface())
-				break;
-			
-			// NT 3.1 doesn't implement WM_CONTEXTMENU, so send it ourselves
-			POINT pt;
-			pt.x = GET_X_LPARAM(lParam);
-			pt.y = GET_Y_LPARAM(lParam);
-			ClientToScreen(hWnd, &pt);
-
-			WndProc(hWnd, WM_CONTEXTMENU, (WPARAM) hWnd, MAKELPARAM(pt.x, pt.y));
 			break;
 		}
 		case WM_CONTEXTMENU:
@@ -4148,8 +4113,7 @@ void MessageList::InitializeClass()
 
 	RegisterClass(&wc);
 
-	if (!NT31SimplifiedInterface())
-		g_ReplyPieceIcon = LoadIcon(g_hInstance, MAKEINTRESOURCE(DMIC(IDI_REPLY_PIECE)));
+	g_ReplyPieceIcon = LoadIcon(g_hInstance, MAKEINTRESOURCE(DMIC(IDI_REPLY_PIECE)));
 }
 
 void MessageList::UpdateBackgroundBrush()
@@ -4350,14 +4314,6 @@ void MessageList::UpdateScrollBar(int addToHeight, int diffNow, bool toStart, bo
 	scrollInfo.nMin = 0;
 	scrollInfo.nMax = th;
 	scrollInfo.nPage = pageHeight;
-
-	// WINDOWS NT 3.51: It seems the message list window just...
-	// forgets to process events if the scroll bar is missing?
-	// It's a strange bug with a strange workaround.
-	//
-	// TODO: Look into this. Is it just a red herring?
-	if (scrollInfo.nMax < (int) scrollInfo.nPage && LOBYTE(GetVersion()) < 4)
-		scrollInfo.nMax = (int) scrollInfo.nPage;
 
 	int posNow = scrollInfo.nPos;
 	ri::SetScrollInfo(m_hwnd, SB_VERT, &scrollInfo, true);

@@ -56,10 +56,7 @@ int QuickSwitcher::GetItemCount(HWND hwnd)
 {
 	HWND hWnd = GetDlgItem(hwnd, IDC_CHANNEL_LIST);
 	
-	if (SupportsDialogEx())
-		return ListView_GetItemCount(hWnd);
-	else
-		return ListBox_GetCount(hWnd);
+	return ListView_GetItemCount(hWnd);
 }
 
 LRESULT QuickSwitcher::TextWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -101,10 +98,7 @@ void QuickSwitcher::OnUpdateQuery(HWND hWnd, const std::string& query)
 
 	HWND hList = GetDlgItem(hWnd, IDC_CHANNEL_LIST);
 	
-	if (SupportsDialogEx())
-		ListView_DeleteAllItems(hList);
-	else
-		ListBox_ResetContent(hList);
+	ListView_DeleteAllItems(hList);
 
 	g_qsItems.clear();
 
@@ -113,7 +107,6 @@ void QuickSwitcher::OnUpdateQuery(HWND hWnd, const std::string& query)
 		std::string name = "";
 		std::string guildName = "";
 		std::string categName = "";
-		std::string namePfx = "";
 
 		int iconIdx = ICN_GUILD;
 		Snowflake guildID = 0;
@@ -129,7 +122,6 @@ void QuickSwitcher::OnUpdateQuery(HWND hWnd, const std::string& query)
 
 			iconIdx = GetIconFromChannel(pChan);
 			name = pChan->m_name;
-			namePfx = pChan->GetTypeSymbol();
 
 			Guild* pGuild = GetDiscordInstance()->GetGuild(pChan->m_parentGuild);
 			if (!pGuild) {
@@ -160,7 +152,6 @@ void QuickSwitcher::OnUpdateQuery(HWND hWnd, const std::string& query)
 		int idx = int(g_qsItems.size());
 		g_qsItems.push_back(QuickSwitchItem(match, iconIdx, name, categName, guildName, guildID));
 
-		if (SupportsDialogEx())
 		{
 			LVITEM lv{};
 			lv.mask = LVIF_TEXT | LVIF_IMAGE;
@@ -169,30 +160,11 @@ void QuickSwitcher::OnUpdateQuery(HWND hWnd, const std::string& query)
 			lv.pszText = LPSTR_TEXTCALLBACK;
 			ListView_InsertItem(hList, &lv);
 		}
-		else
-		{
-			std::string listItemName = namePfx + name;
-			if (!categName.empty())
-				listItemName += " (" + categName + ")";
-
-			if (!guildName.empty() && guildName != TmGetString(IDS_DIRECT_MESSAGES))
-				listItemName += " - " + guildName;
-
-			LPTSTR tstr = ConvertCppStringToTString(listItemName);
-			ListBox_AddString(hList, tstr);
-			free(tstr);
-		}
 	}
 
-	if (SupportsDialogEx())
 	{
 		ListView_SetItemState(hList, 0, LVIS_SELECTED, LVIS_SELECTED);
 		ListView_EnsureVisible(hList, 0, TRUE);
-	}
-	else
-	{
-		ListBox_SetCurSel(hList, 0);
-		EnableWindow(GetDlgItem(hWnd, IDOK), ListBox_GetCount(hList));
 	}
 }
 
@@ -215,10 +187,7 @@ void QuickSwitcher::SwitchToSelectedChannel(HWND hWnd)
 {
 	int iPos = -1;
 	
-	if (SupportsDialogEx())
-		iPos = ListView_GetNextItem(GetDlgItem(hWnd, IDC_CHANNEL_LIST), -1, LVNI_SELECTED);
-	else
-		iPos = ListBox_GetCurSel(GetDlgItem(hWnd, IDC_CHANNEL_LIST));
+	iPos = ListView_GetNextItem(GetDlgItem(hWnd, IDC_CHANNEL_LIST), -1, LVNI_SELECTED);
 
 	if (iPos == -1) {
 		// TODO: disable the go button unless some item is selected
@@ -320,14 +289,12 @@ LRESULT QuickSwitcher::HandleCustomDraw(HWND hWnd, NMLVCUSTOMDRAW* pInfo)
 
 void QuickSwitcher::CreateImageList()
 {
-	if (!SupportsDialogEx())
-		return;
 
 	if (g_qsIml)
 		DestroyImageList();
 
 	int szIcon = GetSystemMetrics(SM_CXSMICON);
-	g_qsIml = ri::ImageList_Create(szIcon, szIcon, Supports32BitIcons() ? ILC_COLOR32 : ILC_COLOR24, ICN_MAX, 0);
+	g_qsIml = ri::ImageList_Create(szIcon, szIcon, ILC_COLOR32, ICN_MAX, 0);
 
 	memset(g_qsImlIdxs, 0, sizeof g_qsImlIdxs);
 
@@ -412,7 +379,6 @@ INT_PTR QuickSwitcher::DialogProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
 			GetClientRect(hList, &rect);
 			width = rect.right - rect.left - GetSystemMetrics(SM_CXVSCROLL);
 
-			if (SupportsDialogEx())
 			{
 				// Add columns
 				int c1w, c2w;
