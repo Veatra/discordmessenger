@@ -517,3 +517,5 @@
 #define _APS_NEXT_SYMED_VALUE           40000
 #endif
 #endif
+
+#define IDC_ENABLE_DIAGNOSTICS 1900

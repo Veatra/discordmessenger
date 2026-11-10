@@ -1,3 +1,4 @@
+#include "utils/Diagnostics.hpp"
 #include <nlohmann/json.h>
 #include <boost/base64/base64.hpp>
 
@@ -845,6 +846,7 @@ void DiscordInstance::OnFetchedMessages(Snowflake gap, ScrollDir::eScrollDir sd)
 
 void DiscordInstance::GatewayClosed(int errorCode)
 {
+	DiagnosticLog("Gateway closed: ID %d, code %d", m_gatewayConnId, errorCode);
 	CloseGatewaySession();
 
 	switch (errorCode)
@@ -877,6 +879,7 @@ void DiscordInstance::GatewayClosed(int errorCode)
 
 void DiscordInstance::StartGatewaySession()
 {
+	DiagnosticLog("Starting gateway connection (previous ID %d)", m_gatewayConnId);
 	GetFrontend()->OnConnecting();
 
 	// Stop the old heartbeat before opening a new connection (ID zero is valid).
@@ -1278,6 +1281,7 @@ void DiscordInstance::HandleGatewayMessage(const std::string& payload)
 		}
 		case HEARTBACK:
 		{
+			DiagnosticLog("Gateway heartbeat acknowledged");
 			DbgPrintF("Heartbeat acknowledged");
 			break;
 		}
@@ -1316,6 +1320,7 @@ void DiscordInstance::SendHeartbeat()
 	if (m_gatewayConnId < 0)
 		return;
 
+	DiagnosticLog("Sending gateway heartbeat: connection %d", m_gatewayConnId);
 	DbgPrintF("Sending heartbeat");
 
 	using namespace GatewayOp;

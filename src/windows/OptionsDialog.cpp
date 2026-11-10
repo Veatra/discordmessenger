@@ -263,6 +263,7 @@ void OptionsInitPage(HWND hwndDlg, int pageNum)
 			SetDlgItemText(hwndDlg, IDC_EDIT_DISCORDCDN, tstrCDN);
 
 			CheckDlgButton(hwndDlg, IDC_ENABLE_TLS_CHECKS,  GetLocalSettings()->EnableTLSVerification() ? BST_CHECKED : BST_UNCHECKED);
+			CheckDlgButton(hwndDlg, IDC_ENABLE_DIAGNOSTICS, GetLocalSettings()->EnableDiagnostics() ? BST_CHECKED : BST_UNCHECKED);
 			CheckDlgButton(hwndDlg, IDC_CHECK_UPDATES,      GetLocalSettings()->CheckUpdatesOption()    ? BST_CHECKED : BST_UNCHECKED);
 			CheckDlgButton(hwndDlg, IDC_TOGGLE_XSUPERPROPS, GetLocalSettings()->AddExtraHeaders()       ? BST_CHECKED : BST_UNCHECKED);
 
@@ -565,6 +566,10 @@ INT_PTR OptionsHandleCommand(HWND hwndParent, HWND hWnd, int pageNum, UINT uMsg,
 					break;
 				}
 
+				case IDC_ENABLE_DIAGNOSTICS:
+					GetLocalSettings()->SetEnableDiagnostics(IsDlgButtonChecked(hWnd, IDC_ENABLE_DIAGNOSTICS) == BST_CHECKED);
+					GetLocalSettings()->Save();
+					break;
 				case IDC_CHECK_UPDATES:
 				{
 					GetLocalSettings()->SetCheckUpdates(IsDlgButtonChecked(hWnd, IDC_CHECK_UPDATES));

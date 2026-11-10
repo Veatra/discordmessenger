@@ -12,3 +12,7 @@ keep/
 *.user
 /vs/x64/*
 /vs/DiscordMessenger/x64/**/*
+
+# Local diagnostic output
+DiscordMessenger-diagnostics.txt*
+DiscordMessenger-loader-report.txt

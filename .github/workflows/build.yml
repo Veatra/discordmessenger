@@ -28,6 +28,7 @@ jobs:
           g++ -std=c++11 -Wall -Wextra -Isrc/core tests/typing_expiry.cpp -o /tmp/dm-typing-expiry
           /tmp/dm-typing-expiry
           python3 tests/status_bar_timers.py
+          python3 tests/diagnostics_log.py
 
       - name: Download OpenSSL
         run: |

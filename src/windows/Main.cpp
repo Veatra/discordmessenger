@@ -1,3 +1,4 @@
+#include "utils/Diagnostics.hpp"
 #include "Config.hpp"
 #include "Main.hpp"
 #include "IChannelView.hpp"
@@ -1290,6 +1291,7 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			break;
 		}
 		case WM_CONNECTERROR:
+			DiagnosticLog("Gateway retry scheduled in %d ms", g_tryAgainTimerElapse);
 			// try it again
 			EnableMenuItem(GetSubMenu(GetMenu(hWnd), 0), ID_FILE_RECONNECTTODISCORD, MF_ENABLED);
 			DbgPrintW("Trying to connect to websocket again in %d ms", g_tryAgainTimerElapse);
@@ -1300,6 +1302,7 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			break;
 		case WM_CONNECTERROR2:
 		case WM_CONNECTED:
+			DiagnosticLog("Gateway connected/ready");
 			ResetTryAgainInTime();
 			if (g_tryAgainTimer) {
 				KillTimer(hWnd, g_tryAgainTimer);
@@ -1411,6 +1414,7 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 		case WM_DESTROY:
 		{
+			DiagnosticLog("Main window destroyed; shutting down");
 			if (GetDiscordInstance())
 				GetDiscordInstance()->CloseGatewaySession();
 			if (GetAvatarCache())
@@ -1991,6 +1995,13 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLin
 
 	LocalSettings* pSettings = GetLocalSettings();
 	pSettings->Load();
+	SetDiagnosticsEnabled(pSettings->EnableDiagnostics());
+	DiagnosticLog("Startup: version %s, %u-bit process, Windows 8.1 API target", GetAppVersionString(), unsigned(sizeof(void*) * 8));
+	OSVERSIONINFOW os = {};
+	os.dwOSVersionInfoSize = sizeof(os);
+	if (GetVersionExW(&os))
+		DiagnosticLog("OS version: %lu.%lu build %lu", (unsigned long)os.dwMajorVersion, (unsigned long)os.dwMinorVersion, (unsigned long)os.dwBuildNumber);
+	DiagnosticLog("Startup: common controls and configuration initialized; preparing main window");
 
 	if (ShouldBlockDoubleBuffering())
 	{

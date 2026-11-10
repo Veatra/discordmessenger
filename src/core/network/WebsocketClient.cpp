@@ -1,3 +1,4 @@
+#include "../utils/Diagnostics.hpp"
 #include "WebsocketClient.hpp"
 #include "../config/DiscordClientConfig.hpp"
 #include "../Frontend.hpp"
@@ -21,6 +22,7 @@ WebsocketClient* GetWebsocketClient()
 void WSConnectionMetadata::OnOpen(WSClient* c, websocketpp::connection_hdl hdl)
 {
 	m_status = OPEN;
+	DiagnosticLog("WebSocket opened: connection %d", m_id);
 
 	WSClient::connection_ptr pConn = c->get_con_from_hdl(hdl);
 	m_server = pConn->get_response_header("Server");
@@ -35,6 +37,7 @@ void WSConnectionMetadata::OnFail(WSClient* c, websocketpp::connection_hdl hdl)
 	m_errorReason = pConn->get_ec().message();
 
 	auto xportEc = pConn->get_transport_ec();
+	DiagnosticLog("WebSocket failure: connection %d, error %d, transport error %d", m_id, pConn->get_ec().value(), xportEc.value());
 
 	DbgPrintF("Failed to connect: %s (server '%s').  Transport error code 0x%x, message %s\n",
 		m_errorReason.c_str(), m_server.c_str(), xportEc.value(), xportEc.message().c_str());
@@ -80,6 +83,7 @@ void WSConnectionMetadata::OnFail(WSClient* c, websocketpp::connection_hdl hdl)
 void WSConnectionMetadata::OnClose(WSClient* c, websocketpp::connection_hdl hdl)
 {
 	m_status = CLOSED;
+	DiagnosticLog("WebSocket closed: connection %d", m_id);
 	WSClient::connection_ptr pConn = c->get_con_from_hdl(hdl);
 
 	std::stringstream s;

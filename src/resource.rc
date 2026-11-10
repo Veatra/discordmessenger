@@ -607,7 +607,7 @@ BEGIN
     GROUPBOX        "Search Results",IDC_QUICK_GROUP,7,38,294,99
 END
 
-IDD_DIALOG_CONNECTION DIALOGEX 0, 0, 260, 242
+IDD_DIALOG_CONNECTION DIALOGEX 0, 0, 260, 258
 STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
 FONT 8, "MS Shell Dlg", 400, 0, 0x0
 BEGIN
@@ -627,6 +627,8 @@ BEGIN
     LTEXT           "WARNING: Disabling TLS certificate verification could expose you to MITM (man-in-the-middle) attacks via certificate spoofing!",IDC_STATIC,33,165,215,19
     CONTROL         "Enable TLS certificate verification",IDC_ENABLE_TLS_CHECKS,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,12,151,230,10
+    CONTROL         "Save diagnostic log beside the executable",IDC_ENABLE_DIAGNOSTICS,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,12,242,236,10
     GROUPBOX        "Check for Updates",IDC_STATIC,6,194,248,40
     CONTROL         "Check for updates using the GitHub API",IDC_CHECK_UPDATES,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,12,204,236,10

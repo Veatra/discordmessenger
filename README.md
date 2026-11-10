@@ -128,8 +128,9 @@ If you did not compile LibWebP, add both `DISABLE_WEBP=1` and
 build retains it. Always use the explicit `all` target.
 
 For an ANSI build, use `UNICODE=no` with separate `BUILD_DIR` and `BIN_DIR`
-values to avoid reusing Unicode objects. Keep the default Windows 8.1 API and
-subsystem baseline; do not lower `WINVER`.
+values to avoid reusing Unicode objects. Keep the Windows 8.1 API baseline;
+do not lower `WINVER`. The PE loader header uses a conservative 6.0 version,
+independent of the Windows 8.1 API target.
 
 The finished binary will be placed in `./bin/DiscordMessenger.exe`. Enjoy!
 
@@ -226,3 +227,29 @@ Discord Messenger is powered by the following external libraries:
 Although these libraries are vendored, you can replace them with the latest version, and the MSVC
 build will keep working.  Adjustments were made to certain libraries to make them compile on MinGW.
 See `doc/` for details.
+
+## Startup failures and diagnostic logging
+
+`0xc000007b` means Windows rejected an executable or DLL image. Check a fresh,
+fully extracted package first: this MinGW build and its bundled OpenSSL and
+thread-runtime DLLs are all x86, including on 64-bit Windows. Do not mix them with
+x64 DLLs or download replacement system DLLs from DLL download sites.
+
+Runtime diagnostics default to enabled. Disable them under File > Preferences >
+Connection > Save diagnostic log beside the executable. The setting is saved
+immediately. `DiscordMessenger-diagnostics.txt` contains timestamps, thread IDs,
+startup stages, gateway lifecycle/heartbeats, and numeric HTTP/transport failures.
+It excludes message bodies, tokens, URLs, and raw gateway payloads. Rotation keeps
+one previous file after approximately 1 MiB. The executable's folder must be
+writable; inability to write a log does not stop the application.
+
+Windows loader failures can occur before the app runs, so they cannot be captured
+by the runtime logger. `tools/Start-Diagnostics.ps1` is included beside the EXE in
+the diagnostic package. Run it from PowerShell there with
+`& .\Start-Diagnostics.ps1`; it records OS details, local PE architectures,
+checksums, and startup errors in `DiscordMessenger-loader-report.txt`. If script
+execution is restricted, inspect the script and use your organization's approved
+way of running PowerShell scripts. Compare file hashes with `SHA256SUMS.txt` in
+the package. If a clean package still fails, a Windows loader trace (for example
+Process Monitor) is needed to identify the rejected DLL; the launcher alone
+cannot establish which system dependency failed.

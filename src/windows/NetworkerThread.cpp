@@ -1,3 +1,4 @@
+#include "utils/Diagnostics.hpp"
 #include "NetworkerThread.hpp"
 #include "WinUtils.hpp"
 #include "WindowMessages.hpp"
@@ -89,6 +90,7 @@ bool NetworkerThread::ProcessResult(NetRequest& req, const httplib::Result& res)
 	if (!res || res.error() == Error::SSLServerVerification)
 	{
 		bool isSSLError = res.error() == Error::SSLServerVerification;
+		DiagnosticLog("HTTP failure: request type %d, transport error %d, certificate failure %d", int(req.itype), int(res.error()), int(isSSLError));
 
 		g_sslErrorMutex.lock();
 		if (g_bQuittingFromSSLError) {

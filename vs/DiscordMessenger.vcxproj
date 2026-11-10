@@ -244,7 +244,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <MinimumRequiredVersion>6.03</MinimumRequiredVersion>
+      <MinimumRequiredVersion>6.00</MinimumRequiredVersion>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)\libs;$(OPENSSL_INSTALL)\lib\VC\x86\MDd;$(OPENSSL_INSTALL)\lib;$(OPENSSL_INSTALL);</AdditionalLibraryDirectories>
       <AdditionalDependencies>libwebp.lib;libcrypto.lib;libssl.lib;ws2_32.lib;msimg32.lib;shlwapi.lib;comctl32.lib;comdlg32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -263,7 +263,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <MinimumRequiredVersion>6.03</MinimumRequiredVersion>
+      <MinimumRequiredVersion>6.00</MinimumRequiredVersion>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)\libs;$(OPENSSL_INSTALL)\lib\VC\x86\MDd;$(OPENSSL_INSTALL)\lib;$(OPENSSL_INSTALL);</AdditionalLibraryDirectories>
       <AdditionalDependencies>libwebp.lib;libcrypto.lib;libssl.lib;ws2_32.lib;msimg32.lib;shlwapi.lib;comctl32.lib;comdlg32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -282,7 +282,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <MinimumRequiredVersion>6.03</MinimumRequiredVersion>
+      <MinimumRequiredVersion>6.00</MinimumRequiredVersion>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)\libs;$(OPENSSL_INSTALL)\lib\VC\x86\MDd;$(OPENSSL_INSTALL)\lib;$(OPENSSL_INSTALL);</AdditionalLibraryDirectories>
       <AdditionalDependencies>libwebp.lib;libcrypto.lib;libssl.lib;ws2_32.lib;msimg32.lib;shlwapi.lib;comctl32.lib;comdlg32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -301,7 +301,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <MinimumRequiredVersion>6.03</MinimumRequiredVersion>
+      <MinimumRequiredVersion>6.00</MinimumRequiredVersion>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)\libs;$(OPENSSL_INSTALL)\lib\VC\x86\MDd;$(OPENSSL_INSTALL)\lib;$(OPENSSL_INSTALL);</AdditionalLibraryDirectories>
       <AdditionalDependencies>libwebp.lib;libcrypto.lib;libssl.lib;ws2_32.lib;msimg32.lib;shlwapi.lib;comctl32.lib;comdlg32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -322,7 +322,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <MinimumRequiredVersion>6.03</MinimumRequiredVersion>
+      <MinimumRequiredVersion>6.00</MinimumRequiredVersion>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -344,7 +344,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <MinimumRequiredVersion>6.03</MinimumRequiredVersion>
+      <MinimumRequiredVersion>6.00</MinimumRequiredVersion>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -363,7 +363,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <MinimumRequiredVersion>6.03</MinimumRequiredVersion>
+      <MinimumRequiredVersion>6.00</MinimumRequiredVersion>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>libwebp.lib;libcrypto.lib;libssl.lib;ws2_32.lib;msimg32.lib;shlwapi.lib;comctl32.lib;comdlg32.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)\libs\x64;$(OPENSSL_INSTALL64)\lib\VC\x64\MDd</AdditionalLibraryDirectories>
@@ -380,7 +380,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <MinimumRequiredVersion>6.03</MinimumRequiredVersion>
+      <MinimumRequiredVersion>6.00</MinimumRequiredVersion>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>libwebp.lib;libcrypto.lib;libssl.lib;ws2_32.lib;msimg32.lib;shlwapi.lib;comctl32.lib;comdlg32.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)\libs\x64;$(OPENSSL_INSTALL64)\lib\VC\x64\MDd</AdditionalLibraryDirectories>
@@ -397,7 +397,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <MinimumRequiredVersion>6.03</MinimumRequiredVersion>
+      <MinimumRequiredVersion>6.00</MinimumRequiredVersion>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>libwebp.lib;libcrypto.lib;libssl.lib;ws2_32.lib;msimg32.lib;shlwapi.lib;comctl32.lib;comdlg32.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)\libs\x64;$(OPENSSL_INSTALL64)\lib\VC\x64\MDd</AdditionalLibraryDirectories>
@@ -414,7 +414,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <MinimumRequiredVersion>6.03</MinimumRequiredVersion>
+      <MinimumRequiredVersion>6.00</MinimumRequiredVersion>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>libwebp.lib;libcrypto.lib;libssl.lib;ws2_32.lib;msimg32.lib;shlwapi.lib;comctl32.lib;comdlg32.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)\libs\x64;$(OPENSSL_INSTALL64)\lib\VC\x64\MDd</AdditionalLibraryDirectories>
@@ -433,7 +433,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <MinimumRequiredVersion>6.03</MinimumRequiredVersion>
+      <MinimumRequiredVersion>6.00</MinimumRequiredVersion>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -454,7 +454,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <MinimumRequiredVersion>6.03</MinimumRequiredVersion>
+      <MinimumRequiredVersion>6.00</MinimumRequiredVersion>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -671,6 +671,8 @@
     <ClCompile Include="..\src\core\utils\Emoji.cpp" />
     <ClCompile Include="..\src\core\utils\UpdateChecker.cpp" />
     <ClCompile Include="..\src\core\utils\Util.cpp" />
+    <ClCompile Include="..\src\core\utils\Diagnostics.cpp" />
+    <ClInclude Include="..\src\core\utils\Diagnostics.hpp" />
     <ClCompile Include="..\src\windows\AboutDialog.cpp" />
     <ClCompile Include="..\src\windows\AutoComplete.cpp" />
     <ClCompile Include="..\src\windows\AvatarCache.cpp" />

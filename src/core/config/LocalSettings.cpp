@@ -1,3 +1,4 @@
+#include "utils/Diagnostics.hpp"
 #include <fstream>
 #include <nlohmann/json.h>
 #include "LocalSettings.hpp"
@@ -85,6 +86,9 @@ bool LocalSettings::Load()
 
 	if (j.contains("Maximized"))
 		m_bMaximized = j["Maximized"];
+
+	if (j.contains("EnableDiagnostics") && j["EnableDiagnostics"].is_boolean())
+		m_bEnableDiagnostics = j["EnableDiagnostics"];
 
 	if (j.contains("EnableTLSVerification"))
 		m_bEnableTLSVerification = j["EnableTLSVerification"];
@@ -186,6 +190,7 @@ bool LocalSettings::Save()
 	j["MinimizeToNotif"] = m_bMinimizeToNotif;
 	j["Maximized"] = m_bMaximized;
 	j["CheckUpdates"] = m_bCheckUpdates;
+	j["EnableDiagnostics"] = m_bEnableDiagnostics;
 	j["EnableTLSVerification"] = m_bEnableTLSVerification;
 	j["DisableFormatting"] = m_bDisableFormatting;
 	j["ShowScrollBarOnGuildList"] = m_bShowScrollBarOnGuildList;
@@ -224,4 +229,11 @@ void LocalSettings::StopUpdateCheckTemporarily()
 {
 	// Remind again in 3 days
 	m_remindUpdatesOn = time(NULL) + time_t(3LL * 24 * 60 * 60);
+}
+
+void LocalSettings::SetEnableDiagnostics(bool enabled)
+{
+	m_bEnableDiagnostics = enabled;
+	SetDiagnosticsEnabled(enabled);
+	if (enabled) DiagnosticLog("Diagnostic logging enabled from Preferences");
 }

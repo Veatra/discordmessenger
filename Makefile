@@ -134,8 +134,8 @@ MNSSV = $(XL) --minor-subsystem-version $(XL)
 MJOSV = $(XL) --major-os-version $(XL)
 MNOSV = $(XL) --minor-os-version $(XL)
 
-# Windows 8.1 minimum (6.3).
-SSYSVER = $(MJSSV) 6 $(MNSSV) 3 $(MJOSV) 6 $(MNOSV) 3
+# Conservative PE loader header; the API target remains Windows 8.1 (0x0603).
+SSYSVER = $(MJSSV) 6 $(MNSSV) 0 $(MJOSV) 6 $(MNOSV) 0
 
 # -----------------------------
 # Compiler and linker flags

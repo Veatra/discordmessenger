@@ -129,6 +129,8 @@ public:
 	bool AskToCheckUpdates() const {
 		return m_bAskToCheckUpdates;
 	}
+	bool EnableDiagnostics() const { return m_bEnableDiagnostics; }
+	void SetEnableDiagnostics(bool enabled);
 	bool EnableTLSVerification() const {
 		return m_bEnableTLSVerification;
 	}
@@ -246,6 +248,7 @@ private:
 	bool m_bCheckUpdates = false;
 	bool m_bAskToCheckUpdates = true;
 	bool m_bEnableTLSVerification = true;
+	bool m_bEnableDiagnostics = true;
 	bool m_bDisableFormatting = false;
 	bool m_bShowScrollBarOnGuildList = false;
 	bool m_bCompactMemberList = false;
