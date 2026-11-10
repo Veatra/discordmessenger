@@ -634,7 +634,6 @@
     <ClInclude Include="..\src\windows\ImageViewer.hpp" />
     <ClInclude Include="..\src\windows\IMemberList.hpp" />
     <ClInclude Include="..\src\windows\InstanceMutex.hpp" />
-    <ClInclude Include="..\src\windows\LoadingMessage.hpp" />
     <ClInclude Include="..\src\windows\LogonDialog.hpp" />
     <ClInclude Include="..\src\windows\Main.hpp" />
     <ClInclude Include="..\src\windows\Measurements.hpp" />
@@ -707,7 +706,6 @@
     <ClCompile Include="..\src\windows\ImageViewer.cpp" />
     <ClCompile Include="..\src\windows\IMemberList.cpp" />
     <ClCompile Include="..\src\windows\InstanceMutex.cpp" />
-    <ClCompile Include="..\src\windows\LoadingMessage.cpp" />
     <ClCompile Include="..\src\windows\LogonDialog.cpp" />
     <ClCompile Include="..\src\windows\Main.cpp" />
     <ClCompile Include="..\src\windows\MemberList.cpp" />

@@ -17,7 +17,6 @@
 #include "PinList.hpp"
 #include "LogonDialog.hpp"
 #include "QRCodeDialog.hpp"
-#include "LoadingMessage.hpp"
 #include "UploadDialog.hpp"
 #include "StatusBar.hpp"
 #include "QuickSwitcher.hpp"
@@ -57,7 +56,6 @@ GuildLister* g_pGuildLister;
 IMemberList* g_pMemberList;
 IChannelView* g_pChannelView;
 MessageEditor* g_pMessageEditor;
-LoadingMessage* g_pLoadingMessage;
 
 bool g_bBlockDoubleBufferingForThisInstance = false;
 
@@ -487,7 +485,6 @@ void CloseCleanup(HWND hWnd)
 	KillImageViewer();
 	ProfilePopout::Dismiss();
 	AutoComplete::DismissAutoCompleteWindowsIfNeeded(hWnd);
-	g_pLoadingMessage->Hide();
 }
 
 LRESULT HandleCommand(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -1125,6 +1122,18 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 			break;
 		}
+		case WM_WEBSOCKETFAIL:
+			Frontend_Win32::HandleWebsocketFail(*(WebsocketFailureParams*)lParam);
+			break;
+		case WM_WEBSOCKETCLOSE:
+		{
+			const int gatewayID = (int)wParam;
+			if (GetDiscordInstance()->GetGatewayID() == gatewayID)
+				GetDiscordInstance()->GatewayClosed((int)lParam);
+			else if (GetQRCodeDialog()->GetGatewayID() == gatewayID)
+				GetQRCodeDialog()->HandleGatewayClose((int)lParam);
+			break;
+		}
 		case WM_WEBSOCKETMESSAGE:
 		{
 			if (InSendMessage())
@@ -1235,7 +1244,6 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			IMemberList::InitializeClasses();
 			IChannelView::InitializeClasses();
 			MessageEditor::InitializeClass();
-			LoadingMessage::InitializeClass();
 
 			RECT rect = {}, rect2 = {};
 			GetClientRect(hWnd, &rect);
@@ -1246,12 +1254,6 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			rect.right  -= 10;
 			rect.bottom -= 10;
 
-			RECT rcLoading = { 0, 0, 300, 200 };
-			POINT pt{ 0, 0 };
-			OffsetRect(&rcLoading, rect2.right / 2 - rcLoading.right / 2, 0);// rect2.bottom / 2 - rcLoading.bottom / 2);
-			ClientToScreen(hWnd, &pt);
-			OffsetRect(&rcLoading, pt.x, pt.y);
-
 			g_pStatusBar   = StatusBar::Create(hWnd);
 			g_pMessageList = MessageList::Create(hWnd, &rect);
 			g_pProfileView = ProfileView::Create(hWnd, &rect, CID_PROFILEVIEW, true);
@@ -1260,9 +1262,8 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			g_pMemberList  = IMemberList::CreateMemberList(hWnd, &rect);
 			g_pChannelView = IChannelView::CreateChannelView(hWnd, &rect);
 			g_pMessageEditor = MessageEditor::Create(hWnd, &rect);
-			g_pLoadingMessage = LoadingMessage::Create(hWnd, &rcLoading);
 
-			if (!g_pStatusBar || !g_pMessageList || !g_pProfileView || !g_pGuildHeader || !g_pMemberList || !g_pChannelView || !g_pMessageEditor || !g_pLoadingMessage)
+			if (!g_pStatusBar || !g_pMessageList || !g_pProfileView || !g_pGuildHeader || !g_pMemberList || !g_pChannelView || !g_pMessageEditor)
 			{
 				char buffer[256];
 				GetWindowTextA(hWnd, buffer, sizeof buffer);
@@ -1305,7 +1306,6 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				KillTimer(hWnd, g_tryAgainTimer);
 				g_tryAgainTimer = 0;
 			}
-			g_pLoadingMessage->Hide();
 
 			if (g_bFromStartup && GetLocalSettings()->GetStartMinimized()) {
 				GetFrontend()->HideWindow();
@@ -1313,11 +1313,13 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 			EnableMenuItem(GetSubMenu(GetMenu(hWnd), 0), ID_FILE_RECONNECTTODISCORD, MF_GRAYED);
 			break;
-		case WM_CONNECTING: {
-			if (!g_bFromStartup || !GetLocalSettings()->GetStartMinimized())
-				g_pLoadingMessage->Show();
+		case WM_CONNECTING:
+			// A new attempt supersedes any pending retry; never activate a popup.
+			if (g_tryAgainTimer) {
+				KillTimer(hWnd, g_tryAgainTimer);
+				g_tryAgainTimer = 0;
+			}
 			break;
-		}
 		case WM_LOGINAGAIN:
 		{
 			if (GetDiscordInstance()->HasGatewayURL()) {
@@ -1414,7 +1416,6 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			SAFE_DELETE(g_pStatusBar);
 			SAFE_DELETE(g_pMemberList);
 			SAFE_DELETE(g_pMessageEditor);
-			SAFE_DELETE(g_pLoadingMessage);
 
 			GetShellNotification()->Deinitialize();
 
@@ -2193,7 +2194,7 @@ void CALLBACK OnHeartbeatTimer(HWND hWnd, UINT uInt, UINT_PTR uIntPtr, DWORD dWo
 
 void SetHeartbeatInterval(int timeMs)
 {
-	if (g_HeartbeatTimerInterval == timeMs)
+	if (g_HeartbeatTimerInterval == timeMs && (timeMs == 0 || g_HeartbeatTimer != 0))
 		return;
 
 	assert(timeMs > 100 || timeMs == 0);
@@ -2203,6 +2204,8 @@ void SetHeartbeatInterval(int timeMs)
 		KillTimer(g_Hwnd, g_HeartbeatTimer);
 		g_HeartbeatTimer = 0;
 	}
+
+	g_HeartbeatTimerInterval = timeMs;
 
 	if (timeMs != 0)
 	{

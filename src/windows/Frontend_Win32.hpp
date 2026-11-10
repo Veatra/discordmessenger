@@ -2,11 +2,22 @@
 
 #include "Frontend.hpp"
 
+struct WebsocketFailureParams
+{
+	int gatewayID;
+	int errorCode;
+	std::string message;
+	bool isTLSError;
+	bool mayRetry;
+};
+
 class Frontend_Win32 : public Frontend
 {
 public:
 	Frontend_Win32() {}
 	~Frontend_Win32() {}
+
+	static void HandleWebsocketFail(const WebsocketFailureParams& failure);
 
 	void OnLoginAgain() override;
 	void OnLoggedOut() override;

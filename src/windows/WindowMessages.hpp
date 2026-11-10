@@ -69,6 +69,9 @@ enum eWmUserMsgs
 	WM_SETBROWSINGPAST,
 	WM_UPDATEAVAILABLE, // wparam=string*, lparam=string*
 
+	WM_WEBSOCKETFAIL, // lparam=WebsocketFailureParams*, synchronous
+	WM_WEBSOCKETCLOSE, // wparam=gateway ID, lparam=close code
+
 	WM_UPDATETEXTSIZE = WM_APP, // used by the MessageEditor
 	WM_RESTOREAPP,
 };

@@ -683,9 +683,6 @@
     <ClInclude Include="..\src\windows\MessageEditor.hpp">
       <Filter>Header Files\Windows\UI\Views</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\windows\LoadingMessage.hpp">
-      <Filter>Header Files\Windows\UI\Views</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\windows\MemberList.hpp">
       <Filter>Header Files\Windows\UI\Lists</Filter>
     </ClInclude>
@@ -875,9 +872,6 @@
       <Filter>Source Files\Windows\UI\Views</Filter>
     </ClCompile>
     <ClCompile Include="..\src\windows\ChannelViewOld.cpp">
-      <Filter>Source Files\Windows\UI\Views</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\windows\LoadingMessage.cpp">
       <Filter>Source Files\Windows\UI\Views</Filter>
     </ClCompile>
     <ClCompile Include="..\src\windows\MessageEditor.cpp">

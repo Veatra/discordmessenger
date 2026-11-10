@@ -343,18 +343,38 @@ void Frontend_Win32::OnWebsocketMessage(int gatewayID, const std::string& payloa
 
 void Frontend_Win32::OnWebsocketClose(int gatewayID, int errorCode, const std::string& message)
 {
-	if (GetDiscordInstance()->GetGatewayID() == gatewayID)
-		GetDiscordInstance()->GatewayClosed(errorCode);
-	else if (GetQRCodeDialog()->GetGatewayID() == gatewayID)
-		GetQRCodeDialog()->HandleGatewayClose(errorCode);
-	else
-		DbgPrintW("Unknown gateway connection %d closed: %d", gatewayID, errorCode);
+	// Keep connection state and heartbeat timer changes on the UI thread.
+	PostMessage(g_Hwnd, WM_WEBSOCKETCLOSE, (WPARAM)gatewayID, (LPARAM)errorCode);
 }
 
 #include <websocketpp/close.hpp>
 
 void Frontend_Win32::OnWebsocketFail(int gatewayID, int errorCode, const std::string& message, bool isTLSError, bool mayRetry)
 {
+	WebsocketFailureParams failure = { gatewayID, errorCode, message, isTLSError, mayRetry };
+	SendMessage(g_Hwnd, WM_WEBSOCKETFAIL, 0, (LPARAM)&failure);
+}
+
+void Frontend_Win32::HandleWebsocketFail(const WebsocketFailureParams& failure)
+{
+	const int gatewayID = failure.gatewayID;
+	const int errorCode = failure.errorCode;
+	const std::string& message = failure.message;
+	const bool isTLSError = failure.isTLSError;
+	const bool mayRetry = failure.mayRetry;
+
+	// A late failure from an obsolete connection must not interrupt a new session.
+	if (gatewayID != GetDiscordInstance()->GetGatewayID() &&
+		gatewayID != GetQRCodeDialog()->GetGatewayID())
+		return;
+
+	if (gatewayID == GetDiscordInstance()->GetGatewayID() && mayRetry && !isTLSError) {
+		// Transient transport failures recover in the background using the retry timer.
+		GetDiscordInstance()->CloseGatewaySession();
+		SendMessage(g_Hwnd, WM_CONNECTERROR, 0, 0);
+		return;
+	}
+
 	static TCHAR buffer[8192];
 	LPTSTR msg = ConvertCppStringToTString(message);
 	WAsnprintf(
@@ -385,7 +405,7 @@ void Frontend_Win32::OnWebsocketFail(int gatewayID, int errorCode, const std::st
 		}
 		else {
 			SendMessage(g_Hwnd, WM_DESTROY, 0, 0);
-			RequestQuit();
+			GetFrontend()->RequestQuit();
 		}
 	}
 	else {

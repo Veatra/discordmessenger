@@ -845,7 +845,7 @@ void DiscordInstance::OnFetchedMessages(Snowflake gap, ScrollDir::eScrollDir sd)
 
 void DiscordInstance::GatewayClosed(int errorCode)
 {
-	m_gatewayConnId = -1;
+	CloseGatewaySession();
 
 	switch (errorCode)
 	{
@@ -879,8 +879,8 @@ void DiscordInstance::StartGatewaySession()
 {
 	GetFrontend()->OnConnecting();
 
-	if (m_gatewayConnId)
-		GetWebsocketClient()->Close(m_gatewayConnId, websocketpp::close::status::normal);
+	// Stop the old heartbeat before opening a new connection (ID zero is valid).
+	CloseGatewaySession();
 
 	int connID = GetWebsocketClient()->Connect(m_gatewayUrl + DISCORD_WSS_DETAILS);
 
@@ -1313,6 +1313,9 @@ void DiscordInstance::HandleGatewayMessage(const std::string& payload)
 
 void DiscordInstance::SendHeartbeat()
 {
+	if (m_gatewayConnId < 0)
+		return;
+
 	DbgPrintF("Sending heartbeat");
 
 	using namespace GatewayOp;
@@ -1867,6 +1870,8 @@ void DiscordInstance::SetActivityStatus(eActiveStatus status, bool bRequestServe
 
 void DiscordInstance::CloseGatewaySession()
 {
+	GetFrontend()->SetHeartbeatInterval(0);
+
 	if (m_gatewayConnId < 0) return;
 
 	GetWebsocketClient()->Close(m_gatewayConnId, websocketpp::close::status::normal);
