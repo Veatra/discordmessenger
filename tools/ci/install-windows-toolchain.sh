@@ -15,6 +15,15 @@ deb https://archive.ubuntu.com/ubuntu ${VERSION_CODENAME}-updates main universe
 deb https://security.ubuntu.com/ubuntu ${VERSION_CODENAME}-security main universe
 SOURCES
 
+# A managed runner may require its inherited proxy. sudo normally drops these
+# variables, and APT uses lowercase names even when the host exports uppercase.
+if [[ -z "${http_proxy:-}" && -n "${HTTP_PROXY:-}" ]]; then export http_proxy="$HTTP_PROXY"; fi
+if [[ -z "${https_proxy:-}" && -n "${HTTPS_PROXY:-}" ]]; then export https_proxy="$HTTPS_PROXY"; fi
+if [[ -z "${no_proxy:-}" && -n "${NO_PROXY:-}" ]]; then export no_proxy="$NO_PROXY"; fi
+for variable in http_proxy https_proxy; do
+    if [[ -n "${!variable:-}" ]]; then printf 'Using inherited %s for APT.\n' "$variable"; fi
+done
+
 apt_options=(
     -o "Dir::Etc::sourcelist=$sources"
     -o 'Dir::Etc::sourceparts=-'
@@ -23,8 +32,8 @@ apt_options=(
     -o 'Acquire::https::Timeout=20'
 )
 # Treat incomplete index refreshes as failures instead of using stale indexes.
-sudo apt-get "${apt_options[@]}" -o 'APT::Update::Error-Mode=any' update
-sudo apt-get "${apt_options[@]}" install -y --no-install-recommends \
+sudo --preserve-env=http_proxy,https_proxy,no_proxy apt-get "${apt_options[@]}" -o 'APT::Update::Error-Mode=any' update
+sudo --preserve-env=http_proxy,https_proxy,no_proxy apt-get "${apt_options[@]}" install -y --no-install-recommends \
     g++-mingw-w64-i686-posix binutils-mingw-w64-i686 cmake
 
 i686-w64-mingw32-g++-posix --version
