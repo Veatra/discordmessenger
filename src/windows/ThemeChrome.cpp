@@ -41,6 +41,11 @@ struct MenuItem {
     bool bar;
 };
 struct Chrome {
+    HMENU hiddenMenu=NULL;
+    HWND bars[3]={};
+    bool redrawBlocked=false;
+    bool tree=false;
+    HTREEITEM hot=NULL;
     bool caption = false;
     bool popup = false;
     HMENU popupMenu = NULL;
@@ -204,12 +209,14 @@ void PaintFrame(HWND window, Chrome* state) {
                 spare.left=(std::max)(spare.left, item.right-f.window.left);
         Fill(dc, spare, ThemePalette::Panel);
     }
+    if(GetMenu(window)) Fill(dc,RECT{f.client.left,f.client.top-1,f.client.right,f.client.top},ThemePalette::Panel);
     FrameRect(dc, &all, ThemeBrush(COLOR_3DFACE));
     if (f.icon.right>f.icon.left) {
         HICON icon = (HICON)SendMessage(window, WM_GETICON, ICON_SMALL, 0);
         if (!icon) icon = (HICON)GetClassLongPtr(window, GCLP_HICONSM);
         if (!icon) icon = (HICON)GetClassLongPtr(window, GCLP_HICON);
-        if (icon) DrawIconEx(dc, f.icon.left, f.icon.top, icon, f.icon.right-f.icon.left, f.icon.bottom-f.icon.top, 0, NULL, DI_NORMAL);
+        if(state->hiddenMenu){int x=f.icon.left,y=(f.icon.top+f.icon.bottom)/2;for(int d=-4;d<=4;d+=4)Line(dc,x,y+Scale(d),f.icon.right,y+Scale(d),ThemePalette::Text);}
+        else if (icon) DrawIconEx(dc, f.icon.left, f.icon.top, icon, f.icon.right-f.icon.left, f.icon.bottom-f.icon.top, 0, NULL, DI_NORMAL);
     }
     RECT text = f.title; text.left = f.icon.right+Scale(9); text.right = (f.minimize.right ? f.minimize.left : f.close.right ? f.close.left : f.title.right)-Scale(12);
     wchar_t title[1024] = {}; GetWindowTextW(window, title, _countof(title));
@@ -275,36 +282,55 @@ void PaintPopup(HWND window, Chrome* state) {
     }
     ReleaseDC(window,dc);
 }
-void PaintScrollbars(HWND window) {
-    LONG_PTR style = GetWindowLongPtr(window, GWL_STYLE);
-    if (!(style & (WS_VSCROLL | WS_HSCROLL)) || IsIconic(window)) return;
-    HDC dc = GetWindowDC(window); if (!dc) return;
-    RECT bounds; GetWindowRect(window, &bounds);
-    RECT gutters[2] = {}; bool visible[2] = {};
-    for (int axis=0; axis<2; ++axis) {
-        if (!(style & (axis ? WS_HSCROLL : WS_VSCROLL))) continue;
-        SCROLLBARINFO bar = {}; bar.cbSize = sizeof(bar);
-        if (!GetScrollBarInfo(window, axis ? OBJID_HSCROLL : OBJID_VSCROLL, &bar) ||
-            (bar.rgstate[0] & (STATE_SYSTEM_INVISIBLE | STATE_SYSTEM_OFFSCREEN))) continue;
-        RECT gutter = bar.rcScrollBar; OffsetRect(&gutter, -bounds.left, -bounds.top);
-        gutters[axis]=gutter; visible[axis]=true;
-        Fill(dc, gutter, ThemePalette::Canvas);
-        if (bar.rgstate[0] & STATE_SYSTEM_UNAVAILABLE) continue;
-        RECT thumb = gutter;
-        if (axis) {
-            thumb.left += bar.xyThumbTop; thumb.right = gutter.left+bar.xyThumbBottom;
-            int middle = (gutter.top+gutter.bottom)/2;
-            thumb.top = middle-Scale(2); thumb.bottom = middle+Scale(2);
-        } else {
-            thumb.top += bar.xyThumbTop; thumb.bottom = gutter.top+bar.xyThumbBottom;
-            int middle = (gutter.left+gutter.right)/2;
-            thumb.left = middle-Scale(2); thumb.right = middle+Scale(2);
-        }
-        if (thumb.right>thumb.left && thumb.bottom>thumb.top) Fill(dc, thumb, ThemePalette::ScrollThumb);
+LRESULT CALLBACK ScrollSurface(HWND window,UINT message,WPARAM w,LPARAM l) {
+    HWND target=(HWND)GetWindowLongPtr(window,GWLP_USERDATA);
+    int axis=GetDlgCtrlID(window);
+    if(message==WM_NCCREATE) { SetWindowLongPtr(window,GWLP_USERDATA,(LONG_PTR)((CREATESTRUCT*)l)->lpCreateParams);return TRUE; }
+    if(message==WM_LBUTTONDOWN || message==WM_LBUTTONDBLCLK) {
+        if(axis==2 || !IsWindowEnabled(target))return 0;
+        POINT p={GET_X_LPARAM(l),GET_Y_LPARAM(l)};ClientToScreen(window,&p);
+        SendMessage(target,WM_NCLBUTTONDOWN,axis ? HTHSCROLL : HTVSCROLL,MAKELPARAM(p.x,p.y));return 0;
     }
-    if (visible[0] && visible[1])
-        Fill(dc, RECT{gutters[0].left,gutters[1].top,gutters[0].right,gutters[1].bottom}, ThemePalette::Canvas);
-    ReleaseDC(window, dc);
+    if(message==WM_MOUSEWHEEL || message==WM_MOUSEHWHEEL) return SendMessage(target,message,w,l);
+    if(message==WM_ERASEBKGND)return 1;
+    if(message==WM_PAINT) {
+        PAINTSTRUCT ps;HDC dc=BeginPaint(window,&ps);RECT r;GetClientRect(window,&r);Fill(dc,r,ThemePalette::Canvas);
+        SCROLLBARINFO bar={};bar.cbSize=sizeof(bar);
+        if(axis<2 && GetScrollBarInfo(target,axis?OBJID_HSCROLL:OBJID_VSCROLL,&bar) && !(bar.rgstate[0]&STATE_SYSTEM_UNAVAILABLE)) {
+            RECT thumb=r;
+            if(axis){thumb.left=bar.xyThumbTop;thumb.right=bar.xyThumbBottom;thumb.top=(r.bottom-Scale(4))/2;thumb.bottom=thumb.top+Scale(4);}
+            else {thumb.top=bar.xyThumbTop;thumb.bottom=bar.xyThumbBottom;thumb.left=(r.right-Scale(4))/2;thumb.right=thumb.left+Scale(4);}
+            Fill(dc,thumb,ThemePalette::ScrollThumb);
+        }
+        EndPaint(window,&ps);return 0;
+    }
+    return DefWindowProc(window,message,w,l);
+}
+void PaintScrollbars(HWND window,Chrome* state) {
+    if(state->redrawBlocked || !(GetWindowLongPtr(window,GWL_STYLE)&WS_CHILD) || !GetParent(window))return;
+    static bool registered=false;
+    if(!registered){WNDCLASSW cls={};cls.hInstance=GetModuleHandle(NULL);cls.lpszClassName=L"DMScrollSurface";cls.lpfnWndProc=ScrollSurface;cls.hCursor=LoadCursor(NULL,IDC_ARROW);registered=RegisterClassW(&cls)!=0;}
+    if(!registered)return;
+    for(int axis=0;axis<2;++axis){
+        SCROLLBARINFO bar={};bar.cbSize=sizeof(bar);
+        bool visible=(GetWindowLongPtr(window,GWL_STYLE)&(axis?WS_HSCROLL:WS_VSCROLL)) && IsWindowVisible(window) && GetScrollBarInfo(window,axis?OBJID_HSCROLL:OBJID_VSCROLL,&bar) && !(bar.rgstate[0]&(STATE_SYSTEM_INVISIBLE|STATE_SYSTEM_OFFSCREEN));
+        if(!visible){if(state->bars[axis])ShowWindow(state->bars[axis],SW_HIDE);continue;}
+        if(!state->bars[axis]){
+            SetWindowLongPtr(window,GWL_STYLE,GetWindowLongPtr(window,GWL_STYLE)|WS_CLIPSIBLINGS);
+            state->bars[axis]=CreateWindowExW(WS_EX_NOPARENTNOTIFY,L"DMScrollSurface",L"Scroll",WS_CHILD|WS_CLIPSIBLINGS,0,0,0,0,GetParent(window),(HMENU)(INT_PTR)axis,GetModuleHandle(NULL),window);
+        }
+        HWND surface=state->bars[axis];if(!surface)continue;
+        RECT r=bar.rcScrollBar;MapWindowPoints(NULL,GetParent(window),(POINT*)&r,2);
+        RECT old;GetWindowRect(surface,&old);MapWindowPoints(NULL,GetParent(window),(POINT*)&old,2);
+        if(!EqualRect(&old,&r)||!IsWindowVisible(surface))SetWindowPos(surface,HWND_TOP,r.left,r.top,r.right-r.left,r.bottom-r.top,SWP_NOACTIVATE|SWP_SHOWWINDOW);
+        InvalidateRect(surface,NULL,FALSE);UpdateWindow(surface);
+    }
+    if(IsWindowVisible(state->bars[0]) && IsWindowVisible(state->bars[1])) {
+        RECT v,h;GetWindowRect(state->bars[0],&v);GetWindowRect(state->bars[1],&h);
+        RECT corner={v.left,h.top,v.right,h.bottom};MapWindowPoints(NULL,GetParent(window),(POINT*)&corner,2);
+        if(!state->bars[2])state->bars[2]=CreateWindowExW(WS_EX_NOPARENTNOTIFY,L"DMScrollSurface",L"",WS_CHILD|WS_CLIPSIBLINGS,0,0,0,0,GetParent(window),(HMENU)2,GetModuleHandle(NULL),window);
+        SetWindowPos(state->bars[2],HWND_TOP,corner.left,corner.top,corner.right-corner.left,corner.bottom-corner.top,SWP_NOACTIVATE|SWP_SHOWWINDOW);
+    } else if(state->bars[2])ShowWindow(state->bars[2],SW_HIDE);
 }
 BOOL CALLBACK AttachMenuPopup(HWND window, LPARAM) {
     wchar_t name[32]={};GetClassNameW(window,name,_countof(name));
@@ -314,10 +340,27 @@ BOOL CALLBACK AttachMenuPopup(HWND window, LPARAM) {
 LRESULT CALLBACK ChromeProc(HWND window, UINT message, WPARAM w, LPARAM l, UINT_PTR id, DWORD_PTR ref) {
     Chrome* state = (Chrome*)ref;
     switch (message) {
+    case WM_SETREDRAW: {
+        state->redrawBlocked=true;
+        LRESULT result=DefSubclassProc(window,message,w,l);
+        if(w){state->redrawBlocked=false;PostMessage(window,WM_APP+682,0,0);}
+        return result;
+    }
+    case WM_APP+682: PaintScrollbars(window,state);return 0;
+    case WM_APP+681:
+        if(state->hiddenMenu && GetMenu(window)){SetMenu(window,NULL);DrawMenuBar(window);}return 0;
+    case WM_SYSCHAR:
+        if(state->hiddenMenu && !GetMenu(window)){SetMenu(window,state->hiddenMenu);DrawMenuBar(window);}
+        break;
+    case WM_SYSCOMMAND:
+        if((w&0xfff0)==SC_KEYMENU && state->hiddenMenu && !GetMenu(window)){SetMenu(window,state->hiddenMenu);DrawMenuBar(window);}
+        break;
     case WM_SHOWWINDOW:
         if (state->popup && w) state->popupMenu=openingMenu;
         break;
     case WM_NCDESTROY: {
+        for(auto surface:state->bars) if(IsWindow(surface))DestroyWindow(surface);
+        if(state->hiddenMenu){RemovePropW(window,L"DMAppMenu"); if(!GetMenu(window))DestroyMenu(state->hiddenMenu);}
         RestoreMenus(state, true);
         LRESULT result = DefSubclassProc(window, message, w, l);
         RemoveWindowSubclass(window, ChromeProc, id); delete state; return result;
@@ -331,7 +374,7 @@ LRESULT CALLBACK ChromeProc(HWND window, UINT message, WPARAM w, LPARAM l, UINT_
         EnumThreadWindows(GetCurrentThreadId(),AttachMenuPopup,0);
         return result;
     }
-    case WM_EXITMENULOOP: RestoreMenus(state, false); openingMenu=NULL; break;
+    case WM_EXITMENULOOP: RestoreMenus(state, false); openingMenu=NULL; if(state->hiddenMenu)PostMessage(window,WM_APP+681,0,0); break;
     case WM_MEASUREITEM: if (MenuMeasure(state, (MEASUREITEMSTRUCT*)l)) return TRUE; break;
     case WM_DRAWITEM: if (MenuDraw(state, (DRAWITEMSTRUCT*)l)) return TRUE; break;
     case WM_MENUCHAR:
@@ -343,6 +386,7 @@ LRESULT CALLBACK ChromeProc(HWND window, UINT message, WPARAM w, LPARAM l, UINT_
     case WM_NCHITTEST:
         if (state->caption) {
             int hit = FrameHit(window, l);
+            if(state->hiddenMenu && hit==HTSYSMENU) return HTMENU;
             LRESULT native = DefSubclassProc(window,message,w,l);
             // Retain the native resize grip, except under the caption buttons.
             if (hit!=HTCLOSE && hit!=HTMINBUTTON && hit!=HTMAXBUTTON &&
@@ -362,12 +406,20 @@ LRESULT CALLBACK ChromeProc(HWND window, UINT message, WPARAM w, LPARAM l, UINT_
         if (state->caption && state->hover!=HTNOWHERE) { state->hover=HTNOWHERE; PaintFrame(window,state); }
         break;
     case WM_NCLBUTTONDOWN: case WM_NCLBUTTONDBLCLK:
+        if(state->hiddenMenu && w==HTMENU){state->pressed=HTMENU;SetCapture(window);return 0;}
         if (state->caption && (w==HTCLOSE || w==HTMINBUTTON || w==HTMAXBUTTON)) {
             if (CaptionButtonEnabled(window,int(w))) { state->pressed=int(w); SetCapture(window); }
             return 0;
         }
         break;
+    case WM_MOUSELEAVE:
+        if(state->tree && state->hot){state->hot=NULL;RemovePropW(window,L"DMTreeHot");InvalidateRect(window,NULL,FALSE);}break;
     case WM_MOUSEMOVE:
+        if(state->tree){
+            TVHITTESTINFO hit={};hit.pt={GET_X_LPARAM(l),GET_Y_LPARAM(l)};TreeView_HitTest(window,&hit);
+            if(hit.hItem!=state->hot){state->hot=hit.hItem;SetPropW(window,L"DMTreeHot",hit.hItem);InvalidateRect(window,NULL,FALSE);}
+            TRACKMOUSEEVENT track={sizeof(track),TME_LEAVE,window,0};TrackMouseEvent(&track);
+        }
         if (state->caption && state->pressed!=HTNOWHERE) {
             POINT point={GET_X_LPARAM(l),GET_Y_LPARAM(l)}; ClientToScreen(window,&point);
             int hit=FrameHit(window,MAKELPARAM(point.x,point.y));
@@ -379,6 +431,12 @@ LRESULT CALLBACK ChromeProc(HWND window, UINT message, WPARAM w, LPARAM l, UINT_
         if (state->caption && state->pressed!=HTNOWHERE) {
             int pressed=state->pressed; state->pressed=HTNOWHERE;
             POINT point={GET_X_LPARAM(l),GET_Y_LPARAM(l)}; ClientToScreen(window,&point);
+            if(pressed==HTMENU){
+                bool inside=FrameHit(window,MAKELPARAM(point.x,point.y))==HTSYSMENU;
+                ReleaseCapture();
+                if(inside){SetMenu(window,state->hiddenMenu);DrawMenuBar(window);PostMessage(window,WM_SYSCOMMAND,SC_KEYMENU,0);}
+                return 0;
+            }
             bool inside=FrameHit(window,MAKELPARAM(point.x,point.y))==pressed && CaptionButtonEnabled(window,pressed);
             ReleaseCapture();
             if (inside) PostMessage(window,WM_SYSCOMMAND,pressed==HTCLOSE ? SC_CLOSE : pressed==HTMINBUTTON ? SC_MINIMIZE : IsZoomed(window) ? SC_RESTORE : SC_MAXIMIZE,0);
@@ -392,11 +450,11 @@ LRESULT CALLBACK ChromeProc(HWND window, UINT message, WPARAM w, LPARAM l, UINT_
     }
     if (message==WM_NCACTIVATE) state->active=w!=0;
     LRESULT result = DefSubclassProc(window, message, w, l);
-    if (message==WM_NCPAINT || message==WM_NCACTIVATE || message==WM_SETTEXT || message==WM_SIZE || message==WM_STYLECHANGED || message==WM_ENABLE) {
+    if (message==WM_NCPAINT || message==WM_NCACTIVATE || message==WM_SETTEXT || message==WM_SIZE || message==WM_STYLECHANGED || message==WM_ENABLE || message==WM_SHOWWINDOW || message==WM_WINDOWPOSCHANGED) {
         if (state->caption) PaintFrame(window,state);
-        PaintScrollbars(window);
+        PaintScrollbars(window,state);
     } else if (message==WM_VSCROLL || message==WM_HSCROLL || message==WM_MOUSEWHEEL || message==WM_MOUSEHWHEEL || message==WM_PAINT || message==WM_KEYDOWN || message==WM_LBUTTONUP) {
-        PaintScrollbars(window);
+        PaintScrollbars(window,state);
     }
     if (state->popup && (message==WM_PAINT || message==WM_NCPAINT || message==WM_PRINT || message==WM_PRINTCLIENT || message==WM_MOUSEMOVE || message==WM_KEYDOWN)) PaintPopup(window,state);
     return result;
@@ -409,6 +467,7 @@ void ThemeChromeWindow(HWND window) {
     std::unique_ptr<Chrome> state(new Chrome);
     LONG_PTR style = GetWindowLongPtr(window, GWL_STYLE);
     wchar_t name[32]={};GetClassNameW(window,name,_countof(name));
+    state->tree=!wcscmp(name,WC_TREEVIEWW);
     state->popup=!wcscmp(name,L"#32768"); state->popupMenu=openingMenu;
     state->caption = !(style & WS_CHILD) && (style & WS_CAPTION)==WS_CAPTION;
     if (!SetWindowSubclass(window, ChromeProc, ChromeId, (DWORD_PTR)state.get())) return;
@@ -418,6 +477,9 @@ void ThemeChromeWindow(HWND window) {
         DwmSetWindowAttribute(window, DWMWA_NCRENDERING_POLICY, &policy, sizeof(policy));
         SkinMenu(state.get(), GetMenu(window), true);
         if (GetMenu(window)) DrawMenuBar(window);
+        if(!wcscmp(name,L"DiscordMessengerClass") && GetMenu(window)){
+            state->hiddenMenu=GetMenu(window);SetPropW(window,L"DMAppMenu",state->hiddenMenu);SetMenu(window,NULL);
+        }
         SetWindowPos(window, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
     }
     if (state->popup) RedrawWindow(window,NULL,NULL,RDW_INVALIDATE|RDW_FRAME);

@@ -31,6 +31,7 @@ jobs:
           python3 tests/diagnostics_log.py
           python3 tests/windows_package.py
           python3 tests/bitmap_readback.py
+          python3 tests/relative_dates.py
           g++ -std=c++11 -Wall -Wextra -Isrc/windows tests/theme_palette.cpp -o /tmp/dm-theme-palette
           /tmp/dm-theme-palette
           g++ -std=c++11 -Wall -Wextra -Isrc/windows tests/scroll_geometry.cpp -o /tmp/dm-scroll-geometry
@@ -67,6 +68,7 @@ jobs:
           cp $OPENSSL_DIR/libssl-4.dll bin/prepared/libssl-4.dll
           cp "$(i686-w64-mingw32-g++-posix -print-file-name=libwinpthread-1.dll)" bin/prepared/
           cp tools/Start-Diagnostics.ps1 bin/prepared/
+          cp res/NotoSans-LICENSE.txt bin/prepared/
           python3 tools/check_windows_package.py bin/prepared
           (cd bin/prepared && sha256sum DiscordMessenger.exe *.dll Start-Diagnostics.ps1 > SHA256SUMS.txt)
       

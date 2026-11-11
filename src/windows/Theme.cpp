@@ -181,7 +181,8 @@ LRESULT CALLBACK ThemeProc(HWND window, UINT message, WPARAM w, LPARAM l, UINT_P
     }
     case WM_NOTIFY: {
         NMHDR* info=(NMHDR*)l;
-        if (info && info->code==NM_CUSTOMDRAW && SendMessage(info->hwndFrom,LVM_ISGROUPVIEWENABLED,0,0)) {
+        wchar_t ownerClass[64]={};GetClassNameW(window,ownerClass,64);
+        if (info && info->code==NM_CUSTOMDRAW && wcscmp(ownerClass,L"MemberList")!=0 && SendMessage(info->hwndFrom,LVM_ISGROUPVIEWENABLED,0,0)) {
             wchar_t name[64]={}; GetClassNameW(info->hwndFrom,name,_countof(name));
             if (!_wcsicmp(name,WC_LISTVIEWW)) {
                 NMLVCUSTOMDRAW* draw=(NMLVCUSTOMDRAW*)l;
@@ -411,4 +412,13 @@ int ThemeImageListAddIcon(HIMAGELIST list, HICON icon) {
     int index=ImageList_ReplaceIcon(list,-1,adjusted ? adjusted : icon);
     if (adjusted) DestroyIcon(adjusted);
     return index;
+}
+
+void ThemeClipAvatar(HDC dc, const RECT& rect, bool rounded) {
+    IntersectClipRect(dc,rect.left,rect.top,rect.right,rect.bottom);
+    if(!rounded)return;
+    POINT points[2]={{rect.left,rect.top},{rect.right,rect.bottom}};
+    LPtoDP(dc,points,2); // Regions use device coordinates, unlike drawing calls.
+    HRGN ellipse=CreateEllipticRgn(points[0].x,points[0].y,points[1].x,points[1].y);
+    if(ellipse){ExtSelectClipRgn(dc,ellipse,RGN_AND);DeleteObject(ellipse);}
 }

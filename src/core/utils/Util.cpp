@@ -423,17 +423,17 @@ std::string FormatDate(time_t time)
 std::string FormatTimeLong(time_t time, bool relativity)
 {
 	// Full time: [date noun] at [time] OR [date] [time]
-	struct tm ptime { 0 };
+	struct tm ptime {};
 	ptime = *localtime(&time);
 	char buff[2048];
 	bool istoday = false, isyday = false;
 	if (relativity) {
 		time_t todaytime = ::time(NULL);
 		struct tm todaytm = *localtime(&todaytime); // fetch today's time
-		todaytime -= 86400;
+		struct tm previous=todaytm; previous.tm_hour=12; previous.tm_mday--; previous.tm_isdst=-1; todaytime=mktime(&previous);
 		struct tm ydaytm = *localtime(&todaytime); // fetch yesterday's time
 		istoday = todaytm.tm_yday == ptime.tm_yday && todaytm.tm_year == ptime.tm_year;
-		isyday  = todaytm.tm_yday == ptime.tm_yday && ydaytm.tm_year  == ptime.tm_year;
+		isyday  = ydaytm.tm_yday == ptime.tm_yday && ydaytm.tm_year  == ptime.tm_year;
 	}
 
 	/**/ if (istoday) strftime(buff, sizeof buff, GetFrontend()->GetTodayAtText().c_str(), &ptime);

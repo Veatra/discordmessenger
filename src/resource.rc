@@ -501,6 +501,12 @@ BEGIN
     LTEXT           "Aligned to:",IDC_STATIC,12,164,41,12,SS_CENTERIMAGE
     CONTROL         "Dark appearance (restart required)",IDC_DARK_MODE,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,12,194,236,12
+    LTEXT "Message font (restart):",IDC_STATIC,12,210,80,12
+    COMBOBOX IDC_MESSAGE_FONT,94,208,106,120,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX IDC_MESSAGE_SIZE,204,208,44,120,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    CONTROL "Round chat avatars",IDC_ROUND_AVATARS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,12,229,93,12
+    LTEXT "Hover #",IDC_STATIC,122,229,42,12
+    EDITTEXT IDC_CHANNEL_HOVER,166,226,82,15,ES_AUTOHSCROLL | WS_TABSTOP
     GROUPBOX        "Message List Watermark",IDC_STATIC,6,135,248,48
     GROUPBOX        "User Interface",IDC_STATIC,6,48,248,56
     LTEXT           "Size of UI elements:",IDC_STATIC,12,86,68,12,SS_CENTERIMAGE
@@ -1431,3 +1437,5 @@ END
 /////////////////////////////////////////////////////////////////////////////
 #endif    // not APSTUDIO_INVOKED
 
+
+IDR_NOTO_FONT RCDATA "../res/NotoSans-Regular.ttf"

@@ -339,3 +339,40 @@ common-controls activation context as the app.
 The shared-palette approach was informed by upstream PR
 <https://github.com/DiscordMessenger/dm/pull/267>. This fork does not import its
 unfinished scroll-container changes or upgrade the compatibility dependencies.
+
+## Refined dark layout and chat appearance
+
+In dark mode the main menu is hidden by default. Click the three-line button in
+the caption, press Alt/F10, or use Alt plus a menu mnemonic to open it. It hides
+after a command or cancellation. The title includes the server and channel names.
+The channel header is larger/bold. Category names use bold text and extra spacing;
+click a category heading to fold/unfold it. The old square category icons are omitted.
+
+File > Preferences > Appearance now offers a six-digit channel hover color
+(default `#842a52`), rounded/square chat avatars, and a chat font/size selection
+(10–24 logical pixels). Font changes require a full restart; message sizing is
+independent of sidebar/profile sizing. Choices are Noto Sans, Segoe UI, Calibri,
+Candara, Corbel, Verdana, Tahoma, Trebuchet MS, and gg sans. gg sans requires an
+existing licensed installation; unavailable choices fall back to Noto Sans.
+Noto Sans, part of Discord's fallback font stack, is bundled as a private memory
+font: it does not install fonts system-wide. Keep `NotoSans-LICENSE.txt` with
+redistributed builds (source and license: `res/NotoSans-*`, upstream
+https://github.com/notofonts/noto-fonts).
+
+Today’s message timestamps show only the time; yesterday’s show “Yesterday at”
+and the time. Older dates retain the localized date format. Dates are smaller,
+regular-weight and muted; author names are larger, with matching hover sizing.
+Role headers use contrast-adjusted Discord role colors and a small accent marker
+instead of the native horizontal separator.
+
+Dark scrollbars use separate, clipped drawing surfaces over the native gutters.
+Mouse input is forwarded to native tracking, retaining native ranges and keyboard
+behavior; no polling or animation timers are added. The server indicator keeps a
+steady color while dragging. Member refreshes capture a visible member and its
+pixel offset before rebuilding rows, then restore that location after layout.
+
+`python3 tests/relative_dates.py` exercises the production formatter around
+midnight, year rollover and daylight-saving changes. The control fixture also
+supports `hidden` to test the on-demand menu, and drives a real native scrollbar
+with mouse input while checking gutter colors during tracking. These offline
+checks do not replace live Discord and Windows 8.1 testing.

@@ -77,17 +77,22 @@ static TCHAR buff2[4096];
 
 void MemberList::Update()
 {
-	StartUpdate();
+	 SCROLLINFO saved={};saved.cbSize=sizeof(saved);saved.fMask=SIF_POS;
+ GetScrollInfo(m_listHwnd,SB_VERT,&saved);
+ Snowflake anchor=0;
+ int anchorTop=0;
+ RECT viewport={};GetClientRect(m_listHwnd,&viewport);
+ // Grouped lists do not reliably support GetTopIndex. Preserve a visible
+ // member and its pixel offset, independent of scrollbar units.
+ for(size_t i=0;i<m_items.size();++i){
+     RECT row={};
+     if(ListView_GetItemRect(m_listHwnd,int(i),&row,LVIR_BOUNDS) && row.bottom>0 && row.top<viewport.bottom){anchor=m_items[i];anchorTop=row.top;break;}
+ }
+ StartUpdate();
 	ClearMembers();
 
 	Guild* pGuild = GetDiscordInstance()->GetGuild(m_guild);
 	assert(pGuild);
-
-	// Preserve scroll position
-	SCROLLINFO si{};
-	si.cbSize = sizeof si;
-	si.fMask = SIF_POS;
-	ri::GetScrollInfo(m_listHwnd, SB_VERT, &si);
 
 	// Add each group
 	for (auto& mem : pGuild->m_members)
@@ -144,10 +149,17 @@ void MemberList::Update()
 		ListView_InsertItem(m_listHwnd, &lvi);
 	}
 
+    StopUpdate();
 	// Now restore the position
-	//ListView_Scroll(m_listHwnd, 0, si.nPos);
-
-	StopUpdate();
+	if(anchor && m_usrToUsrIdx.count(anchor)) {
+     int index=m_usrToUsrIdx[anchor];ListView_EnsureVisible(m_listHwnd,index,FALSE);
+     RECT row={};if(ListView_GetItemRect(m_listHwnd,index,&row,LVIR_BOUNDS))ListView_Scroll(m_listHwnd,0,row.top-anchorTop);
+ } else {
+     SCROLLINFO current={};current.cbSize=sizeof(current);current.fMask=SIF_POS;
+     GetScrollInfo(m_listHwnd,SB_VERT,&current);
+     ListView_Scroll(m_listHwnd,0,saved.nPos-current.nPos);
+ }
+    InvalidateRect(m_listHwnd,NULL,FALSE);
 }
 
 bool MemberList::OnNotify(LRESULT& out, WPARAM wParam, LPARAM lParam)
@@ -156,6 +168,35 @@ bool MemberList::OnNotify(LRESULT& out, WPARAM wParam, LPARAM lParam)
 
 	switch (hdr->code)
 	{
+        case NM_CUSTOMDRAW: {
+            auto draw=(NMLVCUSTOMDRAW*)lParam;
+            if(!IsDarkTheme()) break;
+            if(draw->nmcd.dwDrawStage==CDDS_PREPAINT){out=CDRF_NOTIFYITEMDRAW;return true;}
+            if(draw->nmcd.dwDrawStage==CDDS_ITEMPREPAINT && draw->dwItemType==LVCDI_GROUP) {out=CDRF_NOTIFYPOSTPAINT;return true;}
+            if(draw->nmcd.dwDrawStage==CDDS_ITEMPOSTPAINT && draw->dwItemType==LVCDI_GROUP) {
+                RECT r={};
+                int index=int(draw->nmcd.dwItemSpec);
+                if(!ListView_GetGroupRect(m_listHwnd,index,LVGGR_HEADER,&r)){out=CDRF_DODEFAULT;return true;}
+                FillRect(draw->nmcd.hdc,&r,ThemeBrush(COLOR_WINDOW)); COLORREF color=ThemePalette::Muted;
+                Guild* guild=GetDiscordInstance()->GetGuild(m_guild);
+                if(guild && index>=0 && index<int(m_groups.size())) {
+                    auto role=guild->m_roles.find(m_groups[index]);
+                    if(role!=guild->m_roles.end() && role->second.m_colorOriginal) {
+                        unsigned c=role->second.m_colorOriginal;color=RGB(c>>16&255,c>>8&255,c&255);
+                    }
+                }
+                wchar_t label[512]={};LVGROUP group={};group.cbSize=sizeof(group);group.mask=LVGF_HEADER;group.pszHeader=label;group.cchHeader=512;
+                ListView_GetGroupInfo(m_listHwnd,index,&group);
+                auto old=SelectObject(draw->nmcd.hdc,g_AuthorTextFont);
+                SetBkMode(draw->nmcd.hdc,TRANSPARENT);SetTextColor(draw->nmcd.hdc,ThemeReadableColor(color,ThemePalette::Canvas));
+                RECT accent={r.left+ScaleByDPI(4),r.top+ScaleByDPI(7),r.left+ScaleByDPI(6),r.bottom-ScaleByDPI(5)};
+                COLORREF brush=SetDCBrushColor(draw->nmcd.hdc,ThemeReadableColor(color,ThemePalette::Canvas));
+                FillRect(draw->nmcd.hdc,&accent,(HBRUSH)GetStockObject(DC_BRUSH));SetDCBrushColor(draw->nmcd.hdc,brush);
+                r.left+=ScaleByDPI(12);
+                DrawTextW(draw->nmcd.hdc,label,-1,&r,DT_SINGLELINE|DT_VCENTER|DT_END_ELLIPSIS|DT_NOPREFIX);
+                SelectObject(draw->nmcd.hdc,old);out=CDRF_DODEFAULT;return true;
+            } break;
+        }
 		// TODO: WTF IS THIS?!  Looks like the lParam structure is a hittestinfo after the hdr.
 		// This ain't defined anywhere.  Only modern Windows seems to emit it.  I don't know why
 		case ((UINT) -165):

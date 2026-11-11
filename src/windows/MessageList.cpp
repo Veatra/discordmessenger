@@ -182,7 +182,7 @@ void RichEmbedItem::Measure(HDC hdc, RECT& messageRect, bool isCompact)
 
 	// Calculate the title.
 	if (!m_title.Empty()) {
-		SelectObject(hdc, g_AuthorTextFont);
+		SelectObject(hdc, g_ChatAuthorFont);
 		rcMeasure = rcItem;
 		DrawText(hdc, m_title.GetWrapped(), -1, &rcMeasure, DT_CALCRECT | DT_SINGLELINE | ri::GetWordEllipsisFlag());
 		m_titleSize.cx = rcMeasure.right - rcMeasure.left;
@@ -192,7 +192,7 @@ void RichEmbedItem::Measure(HDC hdc, RECT& messageRect, bool isCompact)
 
 	// Calculate the description.
 	if (!m_description.Empty()) {
-		SelectObject(hdc, g_MessageTextFont);
+		SelectObject(hdc, g_ChatTextFont);
 		rcMeasure = rcItem;
 		DrawText(hdc, m_description.GetWrapped(), -1, &rcMeasure, DT_CALCRECT | DT_WORDBREAK | ri::GetWordEllipsisFlag());
 		m_descriptionSize.cx = rcMeasure.right - rcMeasure.left;
@@ -325,7 +325,7 @@ void RichEmbedItem::Draw(HDC hdc, RECT& messageRect, MessageList* pList)
 		sizeY += m_authorSize.cy;
 	}
 	if (m_titleSize.cy) {
-		SelectObject(hdc, g_AuthorTextFont);
+		SelectObject(hdc, g_ChatAuthorFont);
 		if (sizeY) sizeY += gap;
 		RECT rcText = rc;
 		rcText.top = rc.top + sizeY;
@@ -338,7 +338,7 @@ void RichEmbedItem::Draw(HDC hdc, RECT& messageRect, MessageList* pList)
 		sizeY += m_titleSize.cy;
 	}
 	if (m_descriptionSize.cy) {
-		SelectObject(hdc, g_MessageTextFont);
+		SelectObject(hdc, g_ChatTextFont);
 		if (sizeY) sizeY += gap;
 		RECT rcText = rc;
 		rcText.top = rc.top + sizeY;
@@ -418,7 +418,7 @@ void MessageList::MeasureMessage(
 	bool bIsCompact = IsCompact();
 
 	// measure the author text
-	HGDIOBJ gdiObj = SelectObject(hdc, g_AuthorTextFont);
+	HGDIOBJ gdiObj = SelectObject(hdc, g_ChatAuthorFont);
 	RECT rcCommon1 = msgRect, rcCommon2;
 	RECT rc;
 	rcCommon1.right -= ScaleByDPI(20);
@@ -483,7 +483,7 @@ void MessageList::MeasureMessage(
 	}
 	else datewidth = 0;
 
-	SelectObject(hdc, g_MessageTextFont);
+	SelectObject(hdc, g_ChatTextFont);
 	rc = msgRect;
 	rc.right  -= ScaleByDPI(20);
 	rc.bottom -= ScaleByDPI(20);
@@ -1543,7 +1543,7 @@ void MessageList::DrawDefaultAttachment(HDC hdc, RECT& paintRect, AttachmentItem
 	LPCTSTR name = attachItem.m_nameText;
 	RECT rcMeasure;
 	SetRectEmpty(&rcMeasure);
-	SelectObject(hdc, attachItem.m_bHighlighted ? g_AuthorTextUnderlinedFont : g_AuthorTextFont);
+	SelectObject(hdc, attachItem.m_bHighlighted ? g_ChatAuthorUnderlinedFont : g_ChatAuthorFont);
 	DrawText(hdc, name, -1, &rcMeasure, DT_CALCRECT | DT_NOPREFIX);
 	int width = rcMeasure.right - rcMeasure.left;
 
@@ -2253,7 +2253,7 @@ void MessageList::DrawMessage(HDC hdc, MessageItem& item, RECT& msgRect, RECT& c
 
 		COLORREF clrText = InvertIfNeeded(bDrawNewMarker ? NEW_MARKER_COLOR : ThemeColor(COLOR_GRAYTEXT));
 		COLORREF oldTextClr = SetTextColor(hdc, clrText);
-		COLORREF oldPenClr = ri::SetDCPenColor(hdc, clrText);
+		COLORREF oldPenClr = ri::SetDCPenColor(hdc, IsDarkTheme() && !bDrawNewMarker ? RGB(55,61,72) : clrText);
 
 		if (mStyle != MS_IMAGE)
 		{
@@ -2285,7 +2285,7 @@ void MessageList::DrawMessage(HDC hdc, MessageItem& item, RECT& msgRect, RECT& c
 
 		HGDIOBJ oldFont = NULL;
 		if (bDrawNewMarker)
-			oldFont = SelectObject(hdc, g_AuthorTextFont);
+			oldFont = SelectObject(hdc, g_ChatAuthorFont);
 
 		POINT old;
 		HGDIOBJ oldob = SelectObject(hdc, ri::GetDCPen());
@@ -2493,7 +2493,7 @@ void MessageList::DrawMessage(HDC hdc, MessageItem& item, RECT& msgRect, RECT& c
 			rc.top = rc.bottom - item.m_authHeight;
 		}
 
-		SelectObject(hdc, g_MessageTextFont);
+		SelectObject(hdc, g_ChatTextFont);
 		RECT rca = rc;
 
 		RECT rcMeasure;
@@ -2513,7 +2513,7 @@ void MessageList::DrawMessage(HDC hdc, MessageItem& item, RECT& msgRect, RECT& c
 			rca.left += sizePart2;
 		}
 		if (STRAVAILABLE(actionMsgClick)) {
-			HGDIOBJ objold = SelectObject(hdc, g_AuthorTextFont);
+			HGDIOBJ objold = SelectObject(hdc, g_ChatAuthorFont);
 			rcMeasure = rca;
 			DrawText(hdc, actionMsgClick, -1, &rcMeasure, DT_CALCRECT | DT_SINGLELINE | ri::GetWordEllipsisFlag());
 			sizeClick = rcMeasure.right - rcMeasure.left + 1;
@@ -2545,7 +2545,7 @@ void MessageList::DrawMessage(HDC hdc, MessageItem& item, RECT& msgRect, RECT& c
 	if (isChainBegin)
 	{
 		// draw the author text
-		SelectObject(hdc, item.m_authorHighlighted ? g_AuthorTextUnderlinedFont : g_AuthorTextFont);
+		SelectObject(hdc, item.m_authorHighlighted ? g_ChatAuthorUnderlinedFont : g_ChatAuthorFont);
 
 		RECT rcb = rc;
 		DrawText(hdc, strAuth, -1, &rc, DT_CALCRECT);
@@ -2589,8 +2589,9 @@ void MessageList::DrawMessage(HDC hdc, MessageItem& item, RECT& msgRect, RECT& c
 		item.m_authorRect.bottom = item.m_authorRect.top + auth_hei;
 		item.m_authorRect.right = item.m_authorRect.left + auth_wid;
 
-		// draw the date text
-		SelectObject(hdc, g_DateTextFont);
+		// Align the smaller date font with the author baseline.
+        TEXTMETRIC authorMetrics={}, dateMetrics={};GetTextMetrics(hdc,&authorMetrics);
+		SelectObject(hdc, g_DateTextFont);GetTextMetrics(hdc,&dateMetrics);
 
 		int oldLeft = rc.left;
 		if (inView) {
@@ -2598,6 +2599,8 @@ void MessageList::DrawMessage(HDC hdc, MessageItem& item, RECT& msgRect, RECT& c
 				rc.left += authwidth + ScaleByDPI(10);
 			rc.left += dateOffset;
 			rc.left -= authorOffset;
+            int dateTop=rc.top;rc.top+=std::max(0L,authorMetrics.tmAscent-dateMetrics.tmAscent);
+            COLORREF dateColor=SetTextColor(hdc,IsDarkTheme()?RGB(145,151,162):ThemeColor(COLOR_GRAYTEXT));
 			DrawText(hdc, strDate, -1, &rc, DT_SINGLELINE | DT_NOPREFIX | DT_NOCLIP);
 			if (item.m_msg->m_timeEdited) {
 				RECT rcMeasure{};
@@ -2606,6 +2609,7 @@ void MessageList::DrawMessage(HDC hdc, MessageItem& item, RECT& msgRect, RECT& c
 				DrawText(hdc, strEditDate, -1, &rc, DT_SINGLELINE | DT_NOPREFIX | DT_NOCLIP);
 				rc.left -= rcMeasure.right - rcMeasure.left + ScaleByDPI(5);
 			}
+            SetTextColor(hdc,dateColor);rc.top=dateTop;
 		}
 		rc.left = oldLeft;
 
@@ -2613,11 +2617,11 @@ void MessageList::DrawMessage(HDC hdc, MessageItem& item, RECT& msgRect, RECT& c
 		rc.right -= authorOffset;
 
 		if (!bIsCompact)
-			rc.top += authheight;
+			rc.top += authheight + ScaleByDPI(3);
 	}
 
 	// draw the message text
-	SelectObject(hdc, g_MessageTextFont);
+	SelectObject(hdc, g_ChatTextFont);
 
 	if (isActionMessage)
 	{
@@ -2677,7 +2681,7 @@ void MessageList::DrawMessage(HDC hdc, MessageItem& item, RECT& msgRect, RECT& c
 			iitem.m_rect = Rect(W32RECT(rcClickable));
 
 			if (inView) {
-				HGDIOBJ objold = SelectObject(hdc, g_AuthorTextFont);
+				HGDIOBJ objold = SelectObject(hdc, g_ChatAuthorFont);
 				DrawText(hdc, actionMsgClick, -1, &rcClickable, DT_SINGLELINE | DT_NOPREFIX | DT_NOCLIP | ri::GetWordEllipsisFlag());
 				SelectObject(hdc, objold);
 			}
@@ -2818,7 +2822,7 @@ void MessageList::DrawMessage(HDC hdc, MessageItem& item, RECT& msgRect, RECT& c
 			};
 			item.m_avatarRect = pfRect;
 
-			ThemeDrawIconEx(hdc, pfRect.left - offs1, pfRect.top - offs2, g_ProfileBorderIcon, szScaled, szScaled, 0, NULL, DI_NORMAL | DI_COMPAT);
+            // The avatar silhouette supplies the edge; omit the old beveled frame.
 
 			if (inView)
 			{
@@ -2826,7 +2830,10 @@ void MessageList::DrawMessage(HDC hdc, MessageItem& item, RECT& msgRect, RECT& c
 				bool hasAlpha = false;
 				GetAvatarCache()->AddImagePlace(item.m_msg->m_avatar, eImagePlace::AVATARS, item.m_msg->m_avatar, item.m_msg->m_author_snowflake);
 				HBITMAP hbm = GetAvatarCache()->GetImage(item.m_msg->m_avatar, hasAlpha)->GetFirstFrame();
-				DrawBitmap(hdc, hbm, pfRect.left, pfRect.top, &pfRect, CLR_NONE, GetProfilePictureSize(), 0, hasAlpha);
+                int clip=SaveDC(hdc);
+                ThemeClipAvatar(hdc,pfRect,GetLocalSettings()->RoundAvatars());
+				DrawBitmap(hdc, hbm, pfRect.left, pfRect.top, NULL, CLR_NONE, GetProfilePictureSize(), 0, hasAlpha);
+                RestoreDC(hdc,clip);
 			}
 		}
 		else
@@ -3180,7 +3187,7 @@ void MessageList::Paint(HDC hdc, RECT& paintRect)
 		if (needUpdate)
 			iter->Update(m_guildID);
 
-		HGDIOBJ gdiObj = SelectObject(hdc, g_MessageTextFont);
+		HGDIOBJ gdiObj = SelectObject(hdc, g_ChatTextFont);
 
 		// measure the message text
 		msgRect.bottom = msgRect.top + iter->m_height;
@@ -4562,7 +4569,7 @@ void MessageList::AdjustHeightInfo(
 	}
 	else
 	{
-		int pad = 25;
+		int pad = authheight ? 28 : 25;
 		if (!authheight) pad = 20;
 		if (isChainCont) pad = 10;
 		height = replyheight2 + textheight + authheight + ScaleByDPI(pad);

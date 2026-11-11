@@ -87,6 +87,10 @@ bool LocalSettings::Load()
 	if (j.contains("Maximized"))
 		m_bMaximized = j["Maximized"];
 
+ if(j.contains("MessageFont") && j["MessageFont"].is_string()) SetMessageFont(j["MessageFont"].get<std::string>());
+ if(j.contains("MessageFontSize") && j["MessageFontSize"].is_number_integer()) SetMessageFontSize(j["MessageFontSize"].get<int>());
+ if(j.contains("RoundAvatars") && j["RoundAvatars"].is_boolean()) m_roundAvatars=j["RoundAvatars"];
+ if(j.contains("ChannelHover") && j["ChannelHover"].is_number_unsigned()) SetChannelHover(j["ChannelHover"].get<unsigned>());
 	if (j.contains("EnableDarkMode") && j["EnableDarkMode"].is_boolean())
 		m_bEnableDarkMode = j["EnableDarkMode"];
 
@@ -193,6 +197,10 @@ bool LocalSettings::Save()
 	j["MinimizeToNotif"] = m_bMinimizeToNotif;
 	j["Maximized"] = m_bMaximized;
 	j["CheckUpdates"] = m_bCheckUpdates;
+	j["MessageFont"]=m_messageFont;
+ j["MessageFontSize"]=m_messageFontSize;
+ j["RoundAvatars"]=m_roundAvatars;
+ j["ChannelHover"]=m_channelHover;
 	j["EnableDarkMode"] = m_bEnableDarkMode;
 	j["EnableDiagnostics"] = m_bEnableDiagnostics;
 	j["EnableTLSVerification"] = m_bEnableTLSVerification;

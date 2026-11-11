@@ -149,6 +149,12 @@ void OptionsInitPage(HWND hwndDlg, int pageNum)
 				GetSettingsManager()->GetMessageCompact() ? IDC_APPEARANCE_COMPACT : IDC_APPEARANCE_COZY
 			);
 
+            const char* fonts[]={"Noto Sans","Segoe UI","Calibri","Candara","Corbel","Verdana","Tahoma","Trebuchet MS","gg sans"};
+            for(auto font:fonts){auto text=ConvertCppStringToTString(std::string(font)=="gg sans"?"gg sans (if installed)":font);int idx=(int)SendDlgItemMessage(hwndDlg,IDC_MESSAGE_FONT,CB_ADDSTRING,0,(LPARAM)text);free(text);if(GetLocalSettings()->MessageFont()==font)SendDlgItemMessage(hwndDlg,IDC_MESSAGE_FONT,CB_SETCURSEL,idx,0);}
+            for(int size=10;size<=24;++size){TCHAR text[8];_stprintf(text,TEXT("%d px"),size);int idx=(int)SendDlgItemMessage(hwndDlg,IDC_MESSAGE_SIZE,CB_ADDSTRING,0,(LPARAM)text);if(size==GetLocalSettings()->MessageFontSize())SendDlgItemMessage(hwndDlg,IDC_MESSAGE_SIZE,CB_SETCURSEL,idx,0);}
+            CheckDlgButton(hwndDlg,IDC_ROUND_AVATARS,GetLocalSettings()->RoundAvatars()?BST_CHECKED:BST_UNCHECKED);
+            unsigned c=GetLocalSettings()->ChannelHover();TCHAR hex[16];_stprintf(hex,TEXT("%02X%02X%02X"),c&255,(c>>8)&255,(c>>16)&255);SetDlgItemText(hwndDlg,IDC_CHANNEL_HOVER,hex);
+            SendDlgItemMessage(hwndDlg,IDC_CHANNEL_HOVER,EM_SETLIMITTEXT,7,0);
 			CheckDlgButton(hwndDlg, IDC_DARK_MODE, GetLocalSettings()->EnableDarkMode() ? BST_CHECKED : BST_UNCHECKED);
 			CheckDlgButton(hwndDlg, IDC_DOUBLE_BUFFERING, GetLocalSettings()->UseDoubleBuffering() ? BST_CHECKED : BST_UNCHECKED);
 
@@ -364,6 +370,14 @@ INT_PTR OptionsHandleCommand(HWND hwndParent, HWND hWnd, int pageNum, UINT uMsg,
 		{
 			switch (LOWORD(wParam))
 			{
+                case IDC_MESSAGE_FONT:
+                    if(HIWORD(wParam)==CBN_SELCHANGE){const char* fonts[]={"Noto Sans","Segoe UI","Calibri","Candara","Corbel","Verdana","Tahoma","Trebuchet MS","gg sans"};int idx=(int)SendDlgItemMessage(hWnd,IDC_MESSAGE_FONT,CB_GETCURSEL,0,0);if(idx>=0 && idx<9)GetLocalSettings()->SetMessageFont(fonts[idx]);GetLocalSettings()->Save();}break;
+                case IDC_MESSAGE_SIZE:
+                    if(HIWORD(wParam)==CBN_SELCHANGE){int idx=(int)SendDlgItemMessage(hWnd,IDC_MESSAGE_SIZE,CB_GETCURSEL,0,0);if(idx!=CB_ERR)GetLocalSettings()->SetMessageFontSize(idx+10);GetLocalSettings()->Save();}break;
+                case IDC_ROUND_AVATARS:
+                    GetLocalSettings()->SetRoundAvatars(IsDlgButtonChecked(hWnd,IDC_ROUND_AVATARS)==BST_CHECKED);GetLocalSettings()->Save();SendMessage(g_Hwnd,WM_RECALCMSGLIST,0,0);break;
+                case IDC_CHANNEL_HOVER:
+                    if(HIWORD(wParam)==EN_KILLFOCUS){TCHAR hex[16];GetDlgItemText(hWnd,IDC_CHANNEL_HOVER,hex,16);TCHAR* value=hex[0]==TEXT('#')?hex+1:hex;TCHAR* end=NULL;unsigned long rgb=_tcstoul(value,&end,16);if(_tcslen(value)==6 && end && !*end){GetLocalSettings()->SetChannelHover(RGB(rgb>>16&255,rgb>>8&255,rgb&255));GetLocalSettings()->Save();}}break;
 				case IDC_MESSAGE_STYLE:
 				{
 					if (HIWORD(wParam) != CBN_SELCHANGE)

@@ -152,6 +152,14 @@ public:
 	void SetDisableFormatting(bool b) {
 		m_bDisableFormatting = b;
 	}
+	int MessageFontSize() const { return m_messageFontSize; }
+ void SetMessageFontSize(int n) { m_messageFontSize = n>=10 && n<=24 ? n : 14; }
+ const std::string& MessageFont() const { return m_messageFont; }
+ void SetMessageFont(const std::string& s) { m_messageFont=s.substr(0,31); }
+ bool RoundAvatars() const { return m_roundAvatars; }
+ void SetRoundAvatars(bool b) { m_roundAvatars=b; }
+ unsigned ChannelHover() const { return m_channelHover; }
+ void SetChannelHover(unsigned c) { m_channelHover=c&0xffffff; }
 	bool ShowScrollBarOnGuildList() const {
 		return m_bShowScrollBarOnGuildList;
 	}
@@ -252,6 +260,10 @@ private:
 	bool m_bEnableTLSVerification = true;
 	bool m_bEnableDiagnostics = true;
 	bool m_bEnableDarkMode = false;
+	int m_messageFontSize = 14;
+	std::string m_messageFont = "Noto Sans";
+	bool m_roundAvatars = true;
+	unsigned m_channelHover = 0x522a84; // COLORREF for #842a52
 	bool m_bDisableFormatting = false;
 	bool m_bShowScrollBarOnGuildList = false;
 	bool m_bCompactMemberList = false;

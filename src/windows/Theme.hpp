@@ -17,3 +17,6 @@ void ThemeWindow(HWND window);
 BOOL ThemeDrawIconEx(HDC dc, int x, int y, HICON icon, int width, int height, UINT step, HBRUSH background, UINT flags);
 
 int ThemeImageListAddIcon(HIMAGELIST list, HICON icon);
+
+// Caller saves/restores the DC. Handles partial-paint buffer viewport offsets.
+void ThemeClipAvatar(HDC dc, const RECT& rect, bool rounded);

@@ -834,7 +834,7 @@ void GuildLister::PaintScrollIndicator(HDC dc)
 	FillRect(dc, &gutter, ThemeBrush(COLOR_WINDOW));
 	if (!thumb.length) return;
 	RECT mark = {view.right - ScaleByDPI(6), ScaleByDPI(2) + thumb.start, view.right - ScaleByDPI(2), ScaleByDPI(2) + thumb.start + thumb.length};
-	COLORREF old = SetDCBrushColor(dc, m_scrollDragging ? ThemePalette::Accent : ThemePalette::ScrollThumb);
+	COLORREF old = SetDCBrushColor(dc, ThemePalette::ScrollThumb);
 	FillRect(dc, &mark, (HBRUSH)GetStockObject(DC_BRUSH));
 	SetDCBrushColor(dc, old);
 }

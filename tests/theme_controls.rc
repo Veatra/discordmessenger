@@ -1,2 +1,5 @@
 // Use the same common-controls activation context as the application.
 1 24 "../res/app.manifest"
+
+// Same private font payload as the application.
+1906 10 "../res/NotoSans-Regular.ttf"

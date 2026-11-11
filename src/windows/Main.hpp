@@ -62,6 +62,7 @@ extern HICON    g_UploadIcon;
 extern HICON    g_DownloadIcon;
 
 extern HFONT
+	g_ChatTextFont, g_ChatAuthorFont, g_ChatAuthorUnderlinedFont,
 	g_MessageTextFont,
 	g_AuthorTextFont,
 	g_AuthorTextUnderlinedFont,

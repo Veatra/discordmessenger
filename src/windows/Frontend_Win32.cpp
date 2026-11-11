@@ -532,7 +532,7 @@ std::string Frontend_Win32::GetMonthName(int mon)
 
 std::string Frontend_Win32::GetTodayAtText()
 {
-	return TmGetString(IDS_TODAY_AT) + GetFormatTimestampTimeShort();
+	return GetFormatTimestampTimeShort();
 }
 
 std::string Frontend_Win32::GetYesterdayAtText()

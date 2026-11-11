@@ -1,4 +1,5 @@
 #include "Theme.hpp"
+#include "ThemeChrome.hpp"
 #include "utils/Diagnostics.hpp"
 #include "Config.hpp"
 #include "Main.hpp"
@@ -168,6 +169,7 @@ HICON    g_ProfileBorderIcon;
 HICON    g_ProfileBorderIconGold;
 HICON    g_ProfileBorderIconUnread;
 HFONT
+	g_ChatTextFont, g_ChatAuthorFont, g_ChatAuthorUnderlinedFont,
 	g_MessageTextFont,
 	g_AuthorTextFont,
 	g_AuthorTextUnderlinedFont,
@@ -434,6 +436,8 @@ void UpdateMainWindowTitle(HWND hWnd)
 	std::string windowTitle;
 
 	Channel* pChannel = GetDiscordInstance()->GetCurrentChannel();
+ Guild* guild=GetDiscordInstance()->GetCurrentGuild();
+ if(guild && !guild->m_name.empty()) windowTitle=guild->m_name+" | ";
 	if (pChannel)
 		windowTitle += pChannel->GetTypeSymbol() + pChannel->m_name + " - ";
 
@@ -1293,7 +1297,7 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		case WM_CONNECTERROR:
 			DiagnosticLog("Gateway retry scheduled in %d ms", g_tryAgainTimerElapse);
 			// try it again
-			EnableMenuItem(GetSubMenu(GetMenu(hWnd), 0), ID_FILE_RECONNECTTODISCORD, MF_ENABLED);
+			EnableMenuItem(GetSubMenu(ThemeAppMenu(hWnd), 0), ID_FILE_RECONNECTTODISCORD, MF_ENABLED);
 			DbgPrintW("Trying to connect to websocket again in %d ms", g_tryAgainTimerElapse);
 			TryConnectAgainIn(g_tryAgainTimerElapse);
 			g_tryAgainTimerElapse = g_tryAgainTimerElapse * 115 / 100;
@@ -1313,7 +1317,7 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				GetFrontend()->HideWindow();
 			}
 
-			EnableMenuItem(GetSubMenu(GetMenu(hWnd), 0), ID_FILE_RECONNECTTODISCORD, MF_GRAYED);
+			EnableMenuItem(GetSubMenu(ThemeAppMenu(hWnd), 0), ID_FILE_RECONNECTTODISCORD, MF_GRAYED);
 			break;
 		case WM_CONNECTING:
 			// A new attempt supersedes any pending retry; never activate a popup.
@@ -1574,7 +1578,7 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				MB_ICONERROR | MB_OK
 			);
 
-			EnableMenuItem(GetSubMenu(GetMenu(hWnd), 0), ID_FILE_RECONNECTTODISCORD, MF_ENABLED);
+			EnableMenuItem(GetSubMenu(ThemeAppMenu(hWnd), 0), ID_FILE_RECONNECTTODISCORD, MF_ENABLED);
 			break;
 		}
 		case WM_SHOWPROFILEPOPOUT:
@@ -1777,14 +1781,29 @@ HFONT* g_FntMdStyleArray[FONT_TYPE_COUNT] = {
 	&g_ReplyTextFont, // 13
 };
 
+static int CALLBACK MessageFontFound(const LOGFONT*,const TEXTMETRIC*,DWORD,LPARAM found) { *(bool*)found=true;return 0; }
+
 void InitializeFonts()
 {
+ HRSRC fontResource=FindResource(g_hInstance,MAKEINTRESOURCE(IDR_NOTO_FONT),RT_RCDATA);
+ if(fontResource){HGLOBAL data=LoadResource(g_hInstance,fontResource);DWORD count=0;
+ AddFontMemResourceEx(LockResource(data),SizeofResource(g_hInstance,fontResource),NULL,&count);}
 	LOGFONT lf{};
 	bool haveFont = SystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof lf, &lf, 0);
 	lf.lfItalic = false;
 	lf.lfUnderline = false;
 	auto oldWeight = lf.lfWeight;
 
+ lf.lfHeight=-ScaleByDPI(GetLocalSettings()->MessageFontSize());
+ auto face=ConvertCppStringToTString(GetLocalSettings()->MessageFont());
+ _tcsncpy(lf.lfFaceName,face,LF_FACESIZE-1); free(face);
+ if(GetLocalSettings()->MessageFont()!="Noto Sans") {
+     bool found=false;HDC dc=GetDC(NULL);LOGFONT query=lf;query.lfCharSet=DEFAULT_CHARSET;
+     EnumFontFamiliesEx(dc,&query,MessageFontFound,(LPARAM)&found,0);ReleaseDC(NULL,dc);
+     if(!found)_tcscpy(lf.lfFaceName,TEXT("Noto Sans"));
+ }
+ lf.lfQuality=CLEARTYPE_QUALITY;
+ haveFont=true;
 	lf.lfHeight = ScaleByUser(lf.lfHeight);
 
 	HFONT hf, hfb, hfi, hfbi, hfu, hfbu, hfiu, hfbiu, hfbh, hfbh2, hfbih, hfbih2;
@@ -1881,8 +1900,12 @@ void InitializeFonts()
 
 	g_MessageTextFont = hf;
 	g_AuthorTextFont = hfb;
-	g_DateTextFont = hfi;
-	g_GuildCaptionFont = hfb;
+ LOGFONT date=lf; date.lfItalic=FALSE; date.lfWeight=FW_NORMAL;
+ date.lfHeight=-ScaleByUser(ScaleByDPI(11)); date.lfUnderline=FALSE;
+ g_DateTextFont=CreateFontIndirect(&date);
+ LOGFONT heading=lf; heading.lfItalic=FALSE; heading.lfUnderline=FALSE;
+ heading.lfHeight=-ScaleByUser(ScaleByDPI(16)); heading.lfWeight=FW_BOLD;
+ g_GuildCaptionFont=CreateFontIndirect(&heading);
 	g_GuildSubtitleFont = hf;
 	g_GuildInfoFont = hfi;
 	g_AccountInfoFont = hfb;
@@ -1891,6 +1914,21 @@ void InitializeFonts()
 	g_AuthorTextUnderlinedFont = hfbu;
 	g_TypingRegFont = hfi;
 	g_TypingBoldFont = hfbi;
+    g_ChatTextFont=hf;
+    LOGFONT author=lf;author.lfItalic=FALSE;author.lfUnderline=FALSE;author.lfWeight=FW_BOLD;
+    author.lfHeight=-ScaleByUser(ScaleByDPI(GetLocalSettings()->MessageFontSize()+1));
+    g_ChatAuthorFont=CreateFontIndirect(&author);author.lfUnderline=TRUE;
+    g_ChatAuthorUnderlinedFont=CreateFontIndirect(&author);
+    // Message sizing is independent of fixed sidebar/profile layouts.
+    LOGFONT ui=lf;_tcscpy(ui.lfFaceName,TEXT("Noto Sans"));ui.lfHeight=-ScaleByUser(ScaleByDPI(14));
+    ui.lfItalic=FALSE;ui.lfUnderline=FALSE;ui.lfWeight=FW_NORMAL;
+    g_MessageTextFont=CreateFontIndirect(&ui);ui.lfWeight=FW_BOLD;g_AuthorTextFont=CreateFontIndirect(&ui);
+    ui.lfUnderline=TRUE;g_AuthorTextUnderlinedFont=CreateFontIndirect(&ui);
+    g_AccountInfoFont=g_AuthorTextFont;g_AccountTagFont=g_MessageTextFont;
+    g_GuildSubtitleFont=g_MessageTextFont;g_SendButtonFont=g_MessageTextFont;
+    ui.lfWeight=FW_NORMAL;ui.lfUnderline=FALSE;ui.lfItalic=TRUE;
+    g_GuildInfoFont=CreateFontIndirect(&ui);g_TypingRegFont=g_GuildInfoFont;
+    ui.lfWeight=FW_BOLD;g_TypingBoldFont=CreateFontIndirect(&ui);
 
 	// monospace font
 	LOGFONT lfMono{};

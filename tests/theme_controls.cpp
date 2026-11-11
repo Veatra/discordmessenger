@@ -16,7 +16,8 @@ HWND listBox, tab;
 HMENU fixtureMenu, fixturePopup;
 bool dynamicMenuCalled=false;
 UINT lastCommand=0, lastSystemCommand=0;
-bool checkClose=false, checkKeyboard=false;
+bool checkClose=false, checkKeyboard=false, hiddenMenuTest=false, dragTest=false;
+void MouseMoveTo(int x,int y,DWORD flags=0) {INPUT event={};event.type=INPUT_MOUSE;event.mi.dx=MulDiv(x,65535,GetSystemMetrics(SM_CXSCREEN)-1);event.mi.dy=MulDiv(y,65535,GetSystemMetrics(SM_CYSCREEN)-1);event.mi.dwFlags=MOUSEEVENTF_MOVE|MOUSEEVENTF_ABSOLUTE|flags;assert(SendInput(1,&event,sizeof(event))==1);}
 void PumpCommands() { MSG msg;while(PeekMessage(&msg,NULL,0,0,PM_REMOVE)){TranslateMessage(&msg);DispatchMessage(&msg);} }
 void ClickCaption(HWND window,int hit,int x,int y) {
  SendMessage(window,WM_NCLBUTTONDOWN,hit,MAKELPARAM(x,y));assert(GetCapture()==window);
@@ -46,6 +47,25 @@ BOOL CALLBACK CheckPopupBorder(HWND window,LPARAM found) {
  wchar_t name[32]={};GetClassNameW(window,name,32);
  if(wcscmp(name,L"#32768") || !IsWindowVisible(window))return TRUE;
  HDC dc=GetWindowDC(window);assert(GetPixel(dc,0,4)==ThemePalette::Border);ReleaseDC(window,dc);*(bool*)found=true;return TRUE;
+}
+void CheckAvatarClip() {
+ HDC screen=GetDC(NULL),dc=CreateCompatibleDC(screen);HBITMAP bitmap=CreateCompatibleBitmap(screen,80,80);auto old=SelectObject(dc,bitmap);
+ HBRUSH background=CreateSolidBrush(ThemePalette::Canvas),ink=CreateSolidBrush(RGB(230,40,70));
+ for(bool round:{false,true}){
+  SetViewportOrgEx(dc,0,0,NULL);RECT all={0,0,80,80};FillRect(dc,&all,background);
+  SetViewportOrgEx(dc,-10,-20,NULL);int saved=SaveDC(dc);RECT avatar={20,30,56,66};ThemeClipAvatar(dc,avatar,round);FillRect(dc,&avatar,ink);RestoreDC(dc,saved);
+  assert(GetPixel(dc,20,30)==(round?ThemePalette::Canvas:RGB(230,40,70)));assert(GetPixel(dc,38,48)==RGB(230,40,70));
+  RECT outside={60,30,66,35};FillRect(dc,&outside,ink);assert(GetPixel(dc,61,31)==RGB(230,40,70));
+ }
+ SelectObject(dc,old);DeleteObject(bitmap);DeleteObject(background);DeleteObject(ink);DeleteDC(dc);ReleaseDC(NULL,screen);
+}
+void CheckPrivateFont(HINSTANCE instance) {
+ auto resource=FindResourceW(instance,MAKEINTRESOURCEW(1906),RT_RCDATA);assert(resource);
+ auto data=LoadResource(instance,resource);DWORD count=0;
+ HANDLE memory=AddFontMemResourceEx(LockResource(data),SizeofResource(instance,resource),NULL,&count);assert(memory && count);
+ HFONT font=CreateFontW(-14,0,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,0,0,CLEARTYPE_QUALITY,0,L"Noto Sans");assert(font);
+ HDC dc=GetDC(NULL);auto old=SelectObject(dc,font);wchar_t face[64]={};GetTextFaceW(dc,64,face);assert(!_wcsicmp(face,L"Noto Sans"));
+ SelectObject(dc,old);ReleaseDC(NULL,dc);DeleteObject(font);assert(RemoveFontMemResourceEx(memory));
 }
 void CheckIcon() {
  HDC dc=GetDC(NULL);BITMAPINFO info={};info.bmiHeader.biSize=sizeof(BITMAPINFOHEADER);info.bmiHeader.biWidth=16;info.bmiHeader.biHeight=16;info.bmiHeader.biPlanes=1;info.bmiHeader.biBitCount=32;
@@ -79,11 +99,18 @@ LRESULT CALLBACK Proc(HWND h,UINT m,WPARAM w,LPARAM l) {
  if(m==WM_INITMENUPOPUP){EnableMenuItem((HMENU)w,100,MF_BYCOMMAND|MF_ENABLED);dynamicMenuCalled=true;return 0;}
  if(m==WM_DESTROY){PostQuitMessage(0);return 0;}
  if(m==WM_TIMER){
+  if(w==11){KillTimer(h,11);RECT bounds;GetWindowRect(h,&bounds);MouseMoveTo(bounds.left+18,bounds.top+12,MOUSEEVENTF_LEFTDOWN);MouseMoveTo(bounds.left+18,bounds.top+12,MOUSEEVENTF_LEFTUP);SetTimer(h,12,150,NULL);return 0;}
+  if(w==12){KillTimer(h,12);assert(GetMenu(h)!=NULL);INPUT keys[4]={};for(auto& key:keys){key.type=INPUT_KEYBOARD;key.ki.wVk=VK_ESCAPE;}keys[1].ki.dwFlags=keys[3].ki.dwFlags=KEYEVENTF_KEYUP;assert(SendInput(4,keys,sizeof(INPUT))==4);return 0;}
+  if(w==8){KillTimer(h,8);SCROLLBARINFO bar={};bar.cbSize=sizeof(bar);assert(GetScrollBarInfo(listBox,OBJID_VSCROLL,&bar));dragTest=true;MouseMoveTo((bar.rcScrollBar.left+bar.rcScrollBar.right)/2,bar.rcScrollBar.top+(bar.xyThumbTop+bar.xyThumbBottom)/2,MOUSEEVENTF_LEFTDOWN);SetTimer(h,9,150,NULL);return 0;}
+  if(w==9){KillTimer(h,9);SCROLLBARINFO bar={};bar.cbSize=sizeof(bar);GetScrollBarInfo(listBox,OBJID_VSCROLL,&bar);HDC screen=GetDC(NULL);assert(GetPixel(screen,bar.rcScrollBar.left+2,bar.rcScrollBar.top+2)==ThemePalette::Canvas);ReleaseDC(NULL,screen);MouseMoveTo((bar.rcScrollBar.left+bar.rcScrollBar.right)/2,bar.rcScrollBar.bottom-bar.dxyLineButton-4);SetTimer(h,10,150,NULL);return 0;}
+  if(w==10){KillTimer(h,10);INPUT event={};event.type=INPUT_MOUSE;event.mi.dwFlags=MOUSEEVENTF_LEFTUP;SendInput(1,&event,sizeof(event));return 0;}
   if(w==4){KillTimer(h,4);INPUT keys[4]={};for(auto& key:keys)key.type=INPUT_KEYBOARD;keys[0].ki.wVk=keys[3].ki.wVk=VK_MENU;keys[1].ki.wVk=keys[2].ki.wVk='F';keys[2].ki.dwFlags=keys[3].ki.dwFlags=KEYEVENTF_KEYUP;assert(SendInput(4,keys,sizeof(INPUT))==4);SetTimer(h,3,200,NULL);return 0;}
   if(w==3){KillTimer(h,3);INPUT keys[2]={};keys[0].type=keys[1].type=INPUT_KEYBOARD;keys[0].ki.wVk=keys[1].ki.wVk='O';keys[1].ki.dwFlags=KEYEVENTF_KEYUP;assert(SendInput(2,keys,sizeof(INPUT))==2);return 0;}
   if(w==2) { KillTimer(h,2);SendMessage(h,WM_CANCELMODE,0,0);return 0; }
   if(checkKeyboard)assert(lastCommand==100);
-  else if(IsDarkTheme()){bool found=false;EnumThreadWindows(GetCurrentThreadId(),CheckPopupBorder,(LPARAM)&found);assert(found);}
+  if(dragTest){SCROLLINFO info={};info.cbSize=sizeof(info);info.fMask=SIF_POS;GetScrollInfo(listBox,SB_VERT,&info);assert(info.nPos>0);}
+  if(hiddenMenuTest)assert(GetMenu(h)==NULL);
+  if(!checkKeyboard && IsDarkTheme()){bool found=false;EnumThreadWindows(GetCurrentThreadId(),CheckPopupBorder,(LPARAM)&found);assert(found);}
   RedrawWindow(h,NULL,NULL,RDW_FRAME|RDW_INVALIDATE|RDW_UPDATENOW);
   RECT wr;GetWindowRect(h,&wr);
   HDC dc=GetDC(NULL), mem=CreateCompatibleDC(dc); RECT r;GetWindowRect(h,&r);r.right-=r.left;r.bottom-=r.top;
@@ -101,8 +128,8 @@ int WINAPI WinMain(HINSTANCE inst,HINSTANCE,LPSTR args,int){
  _set_error_mode(_OUT_TO_STDERR);
  INITCOMMONCONTROLSEX ic={sizeof(ic),ICC_WIN95_CLASSES};assert(InitCommonControlsEx(&ic));
  InitializeTheme(args[0]!='l');
- CheckDialog(inst);CheckIcon();
- WNDCLASSW wc={};wc.hInstance=inst;wc.lpszClassName=L"ThemeFixture";wc.lpfnWndProc=Proc;wc.hbrBackground=ThemeBrush(COLOR_3DFACE);wc.hCursor=LoadCursor(NULL,IDC_ARROW);RegisterClassW(&wc);
+ CheckAvatarClip();CheckPrivateFont(inst);CheckDialog(inst);CheckIcon();
+ WNDCLASSW wc={};wc.hInstance=inst;hiddenMenuTest=strstr(args,"hidden")!=NULL;wc.lpszClassName=hiddenMenuTest?L"DiscordMessengerClass":L"ThemeFixture";wc.lpfnWndProc=Proc;wc.hbrBackground=ThemeBrush(COLOR_3DFACE);wc.hCursor=LoadCursor(NULL,IDC_ARROW);RegisterClassW(&wc);
  fixtureMenu=CreateMenu();fixturePopup=CreatePopupMenu();
  AppendMenuW(fixturePopup,MF_STRING|MF_GRAYED,100,L"&Open channel\tCtrl+O");AppendMenuW(fixturePopup,MF_SEPARATOR,0,NULL);
  AppendMenuW(fixturePopup,MF_STRING|MF_CHECKED,101,L"&Dark appearance");AppendMenuW(fixturePopup,MF_STRING|MF_GRAYED,102,L"Unavailable action");
@@ -141,7 +168,7 @@ int WINAPI WinMain(HINSTANCE inst,HINSTANCE,LPSTR args,int){
  SendMessage(tree,WM_VSCROLL,SB_BOTTOM,0);assert(TreeView_GetFirstVisible(tree)!=root);
  SendMessage(tree,WM_VSCROLL,SB_TOP,0);assert(TreeView_GetFirstVisible(tree)==root);
  if(IsDarkTheme()) {
-  RECT r;GetWindowRect(h,&r);POINT origin={0,0};ClientToScreen(h,&origin);MENUBARINFO bar={};bar.cbSize=sizeof(bar);GetMenuBarInfo(h,OBJID_MENU,0,&bar);
+  RECT r;GetWindowRect(h,&r);POINT origin={0,0};ClientToScreen(h,&origin);MENUBARINFO bar={};bar.cbSize=sizeof(bar);if(!GetMenuBarInfo(h,OBJID_MENU,0,&bar))bar.rcBar.top=origin.y;
   int y=(r.top+bar.rcBar.top)/2;
   assert(SendMessage(h,WM_NCHITTEST,0,MAKELPARAM(r.right-22,y))==HTCLOSE);
   assert(SendMessage(h,WM_NCHITTEST,0,MAKELPARAM(r.right-66,y))==HTMAXBUTTON);
@@ -158,8 +185,9 @@ int WINAPI WinMain(HINSTANCE inst,HINSTANCE,LPSTR args,int){
  }
  // Native Alt+F / mnemonic selection still sends the real command ID.
  SetForegroundWindow(h);checkKeyboard=!strstr(args,"popup");
- if(checkKeyboard){SetTimer(h,4,100,NULL);SetTimer(h,2,1000,NULL);}
- SetTimer(h,1,strstr(args,"popup") ? 500 : 1500,NULL);
+ if(checkKeyboard){SetTimer(h,4,100,NULL);SetTimer(h,2,1000,NULL);if(IsDarkTheme())SetTimer(h,8,600,NULL);}
+ if(hiddenMenuTest)SetTimer(h,11,1100,NULL);
+ SetTimer(h,1,strstr(args,"popup") ? 500 : 1700,NULL);
  if(strstr(args,"popup")){SetTimer(h,2,1000,NULL);TrackPopupMenu(fixturePopup,TPM_LEFTALIGN,65,95,0,h,NULL);}
  MSG msg;while(GetMessage(&msg,NULL,0,0)>0){TranslateMessage(&msg);DispatchMessage(&msg);}return 0;
 }

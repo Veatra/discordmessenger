@@ -1,4 +1,5 @@
 #include "Theme.hpp"
+#include "config/LocalSettings.hpp"
 #include "ChannelView.hpp"
 #include <tchar.h>
 
@@ -88,6 +89,8 @@ bool ChannelView::InitTreeView()
 	TreeView_SetImageList(hwndTV, himl, TVSIL_NORMAL);
 
 	SetWindowFont(hwndTV, g_MessageTextFont, TRUE);
+ TreeView_SetItemHeight(hwndTV,ScaleByDPI(24));
+ TreeView_SetIndent(hwndTV,ScaleByDPI(14));
 
 	return TRUE;
 }
@@ -282,7 +285,7 @@ int ChannelView::GetIcon(const Channel& ch, bool bIsExpanded)
 				nIcon = m_nChannelIcon;
 			break;
 
-		case Channel::CATEGORY: nIcon = bIsExpanded ? m_nCategoryCollapseIcon : m_nCategoryExpandIcon; break;
+		case Channel::CATEGORY: nIcon = IsDarkTheme() ? I_IMAGENONE : bIsExpanded ? m_nCategoryCollapseIcon : m_nCategoryExpandIcon; break;
 		case Channel::VOICE:    nIcon = m_nVoiceIcon;    break;
 		case Channel::FORUM:    nIcon = m_nForumIcon;    break;
 		case Channel::GROUPDM:  nIcon = m_nGroupDmIcon;  break;
@@ -378,6 +381,7 @@ void ChannelView::AddChannel(const Channel & ch)
 		}
 
 		cmem.m_hItem = AddItemToTree(m_treeHwnd, cmem.str, hParent, index, parentIndex, GetIcon(ch, true)); // categories are expanded by default
+        if(IsDarkTheme() && ch.m_channelType==Channel::CATEGORY){TVITEMEX spacing={};spacing.mask=TVIF_INTEGRAL;spacing.hItem=cmem.m_hItem;spacing.iIntegral=2;SendMessage(m_treeHwnd,TVM_SETITEM,0,(LPARAM)&spacing);}
 	}
 	else
 	{
@@ -452,7 +456,7 @@ ChannelView* ChannelView::Create(HWND hwnd, LPRECT rect)
 		0,
 		WC_TREEVIEW,
 		NULL,
-		WS_CHILD | TVS_HASBUTTONS | TVS_TRACKSELECT | TVS_SHOWSELALWAYS,
+		WS_CHILD | TVS_SHOWSELALWAYS | TVS_FULLROWSELECT,
 		rect->left,
 		rect->top,
 		rect->right - rect->left,
@@ -526,6 +530,35 @@ bool ChannelView::OnNotifyTree(LRESULT& out, WPARAM wParam, LPARAM lParam)
 
 	switch (nmhdr->code)
 	{
+        case NM_CUSTOMDRAW: {
+            auto d=(NMTVCUSTOMDRAW*)lParam;
+            if(!IsDarkTheme()) break;
+            if(d->nmcd.dwDrawStage==CDDS_PREPAINT){out=CDRF_NOTIFYITEMDRAW;return true;}
+            if(d->nmcd.dwDrawStage==CDDS_ITEMPREPAINT){
+                bool selected=(d->nmcd.uItemState&CDIS_SELECTED)!=0;
+                // Override drawing state only; native selection and keyboard focus remain intact.
+                d->nmcd.uItemState &= ~(CDIS_SELECTED|CDIS_FOCUS);
+                bool hot=(HANDLE)d->nmcd.dwItemSpec==GetPropW(m_treeHwnd,L"DMTreeHot");
+                SelectObject(d->nmcd.hdc,g_MessageTextFont);
+                COLORREF bg=selected ? ThemePalette::Selection : hot ? GetLocalSettings()->ChannelHover() : ThemePalette::Canvas;
+                d->clrTextBk=bg; d->clrText=ThemeReadableColor(ThemePalette::Text,bg);
+                TVITEM item={};item.hItem=(HTREEITEM)d->nmcd.dwItemSpec;item.mask=TVIF_PARAM;
+                if(TreeView_GetItem(m_treeHwnd,&item) && size_t(item.lParam)<m_channels.size()) {
+                    auto ch=GetDiscordInstance()->GetChannel(m_channels[item.lParam].m_snowflake);
+                    if(ch && ch->m_channelType==Channel::CATEGORY) {SelectObject(d->nmcd.hdc,g_AuthorTextFont);d->clrText=ThemePalette::Muted;}
+                }
+                out=CDRF_NEWFONT;return true;
+            } break;
+        }
+        case NM_CLICK: case NM_DBLCLK: {
+            POINT point;GetCursorPos(&point);ScreenToClient(m_treeHwnd,&point);
+            TVHITTESTINFO hit={};hit.pt=point;TreeView_HitTest(m_treeHwnd,&hit);
+            TVITEM item={};item.hItem=hit.hItem;item.mask=TVIF_PARAM;
+            if(hit.hItem && TreeView_GetItem(m_treeHwnd,&item) && size_t(item.lParam)<m_channels.size()){
+                auto channel=GetDiscordInstance()->GetChannel(m_channels[item.lParam].m_snowflake);
+                if(channel && channel->m_channelType==Channel::CATEGORY){if(nmhdr->code==NM_CLICK)TreeView_Expand(m_treeHwnd,hit.hItem,TVE_TOGGLE);out=TRUE;return true;}
+            } break;
+        }
 		case TVN_ITEMEXPANDED:
 		{
 			NMTREEVIEW* nmtv = (NMTREEVIEW*)lParam;
@@ -533,7 +566,7 @@ bool ChannelView::OnNotifyTree(LRESULT& out, WPARAM wParam, LPARAM lParam)
 			HTREEITEM hItem = nmtv->itemNew.hItem;
 			if (!hItem) break;
 
-			SetItemIcon(hItem, nmtv->action == TVE_EXPAND ? m_nCategoryCollapseIcon : m_nCategoryExpandIcon);
+			if(!IsDarkTheme()) SetItemIcon(hItem, nmtv->action == TVE_EXPAND ? m_nCategoryCollapseIcon : m_nCategoryExpandIcon);
 			break;
 		}
 		case TVN_SELCHANGED:
@@ -555,6 +588,8 @@ bool ChannelView::OnNotifyTree(LRESULT& out, WPARAM wParam, LPARAM lParam)
 
 			Snowflake sf = m_channels[item.lParam].m_snowflake;
 
+            auto channel=GetDiscordInstance()->GetChannel(sf);
+            if(channel && channel->m_channelType==Channel::CATEGORY)break;
 			if (sf) {
 				m_currentChannel = sf;
 				GetDiscordInstance()->OnSelectChannel(sf);
