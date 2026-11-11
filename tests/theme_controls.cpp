@@ -4,6 +4,7 @@
 #include <commctrl.h>
 #include <cstdio>
 #include <vector>
+#include <algorithm>
 #include <cassert>
 #include <cwchar>
 #include <cstring>
@@ -60,12 +61,30 @@ void CheckAvatarClip() {
  SelectObject(dc,old);DeleteObject(bitmap);DeleteObject(background);DeleteObject(ink);DeleteDC(dc);ReleaseDC(NULL,screen);
 }
 void CheckPrivateFont(HINSTANCE instance) {
- auto resource=FindResourceW(instance,MAKEINTRESOURCEW(1906),RT_RCDATA);assert(resource);
- auto data=LoadResource(instance,resource);DWORD count=0;
- HANDLE memory=AddFontMemResourceEx(LockResource(data),SizeofResource(instance,resource),NULL,&count);assert(memory && count);
- HFONT font=CreateFontW(-14,0,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,0,0,CLEARTYPE_QUALITY,0,L"Noto Sans");assert(font);
- HDC dc=GetDC(NULL);auto old=SelectObject(dc,font);wchar_t face[64]={};GetTextFaceW(dc,64,face);assert(!_wcsicmp(face,L"Noto Sans"));
- SelectObject(dc,old);ReleaseDC(NULL,dc);DeleteObject(font);assert(RemoveFontMemResourceEx(memory));
+ const wchar_t* names[]={L"Noto Sans",L"Atkinson Hyperlegible",L"Lato"};
+ for(int i=0;i<3;++i){
+  auto resource=FindResourceW(instance,MAKEINTRESOURCEW(1906+i),RT_RCDATA);assert(resource);
+  auto data=LoadResource(instance,resource);DWORD count=0;
+  HANDLE memory=AddFontMemResourceEx(LockResource(data),SizeofResource(instance,resource),NULL,&count);assert(memory && count);
+  HFONT font=CreateFontW(-14,0,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,0,0,CLEARTYPE_QUALITY,0,names[i]);assert(font);
+  HDC dc=GetDC(NULL);auto old=SelectObject(dc,font);wchar_t face[64]={};GetTextFaceW(dc,64,face);assert(!_wcsicmp(face,names[i]));
+  SelectObject(dc,old);ReleaseDC(NULL,dc);DeleteObject(font);assert(RemoveFontMemResourceEx(memory));
+ }
+}
+void CheckSoftAvatar(){
+ HDC screen=GetDC(NULL),dc=CreateCompatibleDC(screen);HBITMAP canvas=CreateCompatibleBitmap(screen,80,80);auto old=SelectObject(dc,canvas);
+ BITMAPINFO info={};info.bmiHeader.biSize=sizeof(BITMAPINFOHEADER);info.bmiHeader.biWidth=20;info.bmiHeader.biHeight=-20;info.bmiHeader.biPlanes=1;info.bmiHeader.biBitCount=32;
+ uint32_t* pixels=NULL;HBITMAP source=CreateDIBSection(screen,&info,DIB_RGB_COLORS,(void**)&pixels,NULL,0);assert(source);
+ for(bool rounded:{false,true}){
+  SetViewportOrgEx(dc,0,0,NULL);RECT bounds={0,0,80,80};FillRect(dc,&bounds,ThemeBrush(COLOR_WINDOW));
+  std::fill(pixels,pixels+400,0xffe62846);SetViewportOrgEx(dc,-5,-10,NULL);RECT avatar={10,20,52,62};
+  ThemeDrawAvatar(dc,source,avatar,true,rounded);assert(GetPixel(dc,31,41)==RGB(230,40,70));
+  assert(GetPixel(dc,10,20)==(rounded?ThemeColor(COLOR_WINDOW):RGB(230,40,70)));
+  bool fractional=false;for(int y=20;y<62;++y)for(int x=10;x<52;++x){auto c=GetPixel(dc,x,y);if(c!=ThemeColor(COLOR_WINDOW) && c!=RGB(230,40,70))fractional=true;}
+  assert(fractional==rounded);
+  GdiFlush();std::fill(pixels,pixels+400,0xff2060e0);ThemeDrawAvatar(dc,source,avatar,true,rounded);assert(GetPixel(dc,31,41)==RGB(32,96,224));
+ }
+ SelectObject(dc,old);DeleteObject(source);DeleteObject(canvas);DeleteDC(dc);ReleaseDC(NULL,screen);
 }
 void CheckIcon() {
  HDC dc=GetDC(NULL);BITMAPINFO info={};info.bmiHeader.biSize=sizeof(BITMAPINFOHEADER);info.bmiHeader.biWidth=16;info.bmiHeader.biHeight=16;info.bmiHeader.biPlanes=1;info.bmiHeader.biBitCount=32;
@@ -128,7 +147,7 @@ int WINAPI WinMain(HINSTANCE inst,HINSTANCE,LPSTR args,int){
  _set_error_mode(_OUT_TO_STDERR);
  INITCOMMONCONTROLSEX ic={sizeof(ic),ICC_WIN95_CLASSES};assert(InitCommonControlsEx(&ic));
  InitializeTheme(args[0]!='l');
- CheckAvatarClip();CheckPrivateFont(inst);CheckDialog(inst);CheckIcon();
+ CheckSoftAvatar();CheckAvatarClip();CheckPrivateFont(inst);CheckDialog(inst);CheckIcon();
  WNDCLASSW wc={};wc.hInstance=inst;hiddenMenuTest=strstr(args,"hidden")!=NULL;wc.lpszClassName=hiddenMenuTest?L"DiscordMessengerClass":L"ThemeFixture";wc.lpfnWndProc=Proc;wc.hbrBackground=ThemeBrush(COLOR_3DFACE);wc.hCursor=LoadCursor(NULL,IDC_ARROW);RegisterClassW(&wc);
  fixtureMenu=CreateMenu();fixturePopup=CreatePopupMenu();
  AppendMenuW(fixturePopup,MF_STRING|MF_GRAYED,100,L"&Open channel\tCtrl+O");AppendMenuW(fixturePopup,MF_SEPARATOR,0,NULL);

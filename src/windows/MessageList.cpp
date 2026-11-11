@@ -418,7 +418,7 @@ void MessageList::MeasureMessage(
 	bool bIsCompact = IsCompact();
 
 	// measure the author text
-	HGDIOBJ gdiObj = SelectObject(hdc, g_ChatAuthorFont);
+	HGDIOBJ gdiObj = SelectObject(hdc, ChatAuthorFont(strAuth));
 	RECT rcCommon1 = msgRect, rcCommon2;
 	RECT rc;
 	rcCommon1.right -= ScaleByDPI(20);
@@ -2545,7 +2545,7 @@ void MessageList::DrawMessage(HDC hdc, MessageItem& item, RECT& msgRect, RECT& c
 	if (isChainBegin)
 	{
 		// draw the author text
-		SelectObject(hdc, item.m_authorHighlighted ? g_ChatAuthorUnderlinedFont : g_ChatAuthorFont);
+		SelectObject(hdc, ChatAuthorFont(strAuth,item.m_authorHighlighted));
 
 		RECT rcb = rc;
 		DrawText(hdc, strAuth, -1, &rc, DT_CALCRECT);
@@ -2830,10 +2830,7 @@ void MessageList::DrawMessage(HDC hdc, MessageItem& item, RECT& msgRect, RECT& c
 				bool hasAlpha = false;
 				GetAvatarCache()->AddImagePlace(item.m_msg->m_avatar, eImagePlace::AVATARS, item.m_msg->m_avatar, item.m_msg->m_author_snowflake);
 				HBITMAP hbm = GetAvatarCache()->GetImage(item.m_msg->m_avatar, hasAlpha)->GetFirstFrame();
-                int clip=SaveDC(hdc);
-                ThemeClipAvatar(hdc,pfRect,GetLocalSettings()->RoundAvatars());
-				DrawBitmap(hdc, hbm, pfRect.left, pfRect.top, NULL, CLR_NONE, GetProfilePictureSize(), 0, hasAlpha);
-                RestoreDC(hdc,clip);
+                ThemeDrawAvatar(hdc,hbm,pfRect,hasAlpha,GetLocalSettings()->RoundAvatars());
 			}
 		}
 		else

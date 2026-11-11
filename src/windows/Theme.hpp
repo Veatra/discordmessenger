@@ -20,3 +20,7 @@ int ThemeImageListAddIcon(HIMAGELIST list, HICON icon);
 
 // Caller saves/restores the DC. Handles partial-paint buffer viewport offsets.
 void ThemeClipAvatar(HDC dc, const RECT& rect, bool rounded);
+
+void ThemeDrawSectionHeader(HDC dc, RECT rect, const wchar_t* text, COLORREF color, HFONT font);
+
+void ThemeDrawAvatar(HDC dc,HBITMAP bitmap,const RECT& rect,bool alpha,bool rounded);

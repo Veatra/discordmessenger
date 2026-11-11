@@ -447,16 +447,16 @@ BEGIN
 END
 
 IDD_DIALOG_OPTIONS DIALOGEX 0, 0, 498, 268
-STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MAXIMIZEBOX
 CAPTION "Preferences"
-FONT 8, "MS Shell Dlg", 400, 0, 0x1
+FONT 9, "Noto Sans", 400, 0, 0x1
 BEGIN
-    CONTROL         "",IDC_OPTIONS_TABS,"SysTabControl32",0x0,7,7,484,254
+    LISTBOX         IDC_OPTIONS_NAV,7,7,110,254,LBS_NOTIFY | LBS_OWNERDRAWFIXED | LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
 END
 
 IDD_DIALOG_MY_ACCOUNT DIALOGEX 0, 0, 260, 242
 STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
-FONT 8, "MS Shell Dlg", 400, 0, 0x0
+FONT 9, "Noto Sans", 400, 0, 0x0
 BEGIN
     GROUPBOX        "My Account",IDC_MY_ACCOUNT_BOX,6,7,248,52
     LTEXT           "User Name#Tag",IDC_MY_ACCOUNT_NAME,54,18,194,20,SS_CENTERIMAGE
@@ -483,12 +483,12 @@ END
 
 IDD_DIALOG_APPEARANCE DIALOGEX 0, 0, 260, 242
 STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
-FONT 8, "MS Shell Dlg", 400, 0, 0x0
+FONT 9, "Noto Sans", 400, 0, 0x0
 BEGIN
     GROUPBOX        "Message Display",IDC_MDISPLAY_BOX,6,7,248,38
-    CONTROL         "Cozy: Modern, beautiful, and easy on your eyes.",IDC_APPEARANCE_COZY,
+    CONTROL         "Cozy: Separate headers, avatars and message text.",IDC_APPEARANCE_COZY,
                     "Button",BS_AUTORADIOBUTTON | WS_GROUP,12,18,236,10
-    CONTROL         "Compact: Fit more messages on screen at one time. #IRC",IDC_APPEARANCE_COMPACT,
+    CONTROL         "Compact: Inline headers for denser conversations.",IDC_APPEARANCE_COMPACT,
                     "Button",BS_AUTORADIOBUTTON,12,30,236,10
     GROUPBOX        "Message List Style",IDC_MSTYLE_BOX,6,105,248,29
     LTEXT           "Message theme:",IDC_STATIC,12,116,53,13,SS_CENTERIMAGE
@@ -617,7 +617,7 @@ END
 
 IDD_DIALOG_CONNECTION DIALOGEX 0, 0, 260, 258
 STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
-FONT 8, "MS Shell Dlg", 400, 0, 0x0
+FONT 9, "Noto Sans", 400, 0, 0x0
 BEGIN
     GROUPBOX        "Discord API && CDN",IDC_STATIC,6,7,248,128
     LTEXT           "Discord API URL:",IDC_STATIC,12,20,55,8
@@ -684,7 +684,7 @@ END
 
 IDD_DIALOG_NOTIFSETTINGS DIALOGEX 0, 0, 260, 242
 STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
-FONT 8, "MS Shell Dlg", 400, 0, 0x0
+FONT 9, "Noto Sans", 400, 0, 0x0
 BEGIN
     GROUPBOX        "Balloon Notifications",IDC_STATIC,6,7,248,65
     CONTROL         "Enable balloon notifications",IDC_ENABLE_BALLOON_NOTIFS,
@@ -699,7 +699,7 @@ END
 
 IDD_DIALOG_CHATSETTINGS DIALOGEX 0, 0, 260, 242
 STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
-FONT 8, "MS Shell Dlg", 400, 0, 0x0
+FONT 9, "Noto Sans", 400, 0, 0x0
 BEGIN
     GROUPBOX        "Message Options",IDC_STATIC,6,7,248,59
     CONTROL         "Disable markdown formatting (suggested for RTL scripts such as Arabic or in case of performance issues)",IDC_DISABLE_FORMATTING,
@@ -719,7 +719,7 @@ END
 
 IDD_DIALOG_WINDOWSETTINGS DIALOGEX 0, 0, 260, 242
 STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
-FONT 8, "MS Shell Dlg", 400, 0, 0x0
+FONT 9, "Noto Sans", 400, 0, 0x0
 BEGIN
     GROUPBOX        "Window Settings",IDC_STATIC,6,7,248,81
     CONTROL         "Save window size",IDC_SAVE_WINDOW_SIZE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,12,18,236,10
@@ -1439,3 +1439,6 @@ END
 
 
 IDR_NOTO_FONT RCDATA "../res/NotoSans-Regular.ttf"
+
+IDR_ATKINSON_FONT RCDATA "../res/AtkinsonHyperlegible-Regular.ttf"
+IDR_LATO_FONT RCDATA "../res/Lato-Regular.ttf"

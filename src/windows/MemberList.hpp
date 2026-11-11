@@ -15,7 +15,6 @@ private:
 public:
 	HWND m_listHwnd;
 	//HWND m_mainHwnd;
-	WNDPROC m_origListWndProc;
 	Snowflake m_guild = 0;
 	int m_nextItem = 0;
 	int m_nextGroup = 0;
@@ -43,9 +42,10 @@ public:
 
 private:
 	void Initialize();
+	void PaintGroupHeaders(HDC dc);
 	bool OnNotify(LRESULT& out, WPARAM wParam, LPARAM lParam);
 
-	static LRESULT CALLBACK ListWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	static LRESULT CALLBACK ListWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR id, DWORD_PTR data);
 	static LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 	static WNDCLASS g_MemberListClass;

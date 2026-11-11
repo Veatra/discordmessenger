@@ -6,6 +6,7 @@
 #include <cwchar>
 #include <vector>
 #include <string>
+#include <memory>
 #include <algorithm>
 #include <unordered_map>
 
@@ -52,6 +53,10 @@ void PaintButton(HWND window, HDC dc, Control* control) {
     SetTextColor(dc, enabled ? ThemePalette::Text : ThemePalette::Muted);
     SetBkMode(dc, TRANSPARENT);
     if (type == BS_GROUPBOX) {
+        if(GetPropW(window,L"DMPrefsSection")) {
+            SetTextColor(dc,ThemePalette::Muted);
+            rect.left+=4;DrawTextW(dc,text.c_str(),-1,&rect,DT_SINGLELINE|DT_TOP|DT_HIDEPREFIX);return;
+        }
         RECT frame = rect; frame.top += 7;
         FrameRect(dc, &frame, ThemeBrush(COLOR_3DSHADOW));
         RECT caption = rect; caption.left += 9; caption.top = 0;
@@ -174,6 +179,9 @@ LRESULT CALLBACK ThemeProc(HWND window, UINT message, WPARAM w, LPARAM l, UINT_P
     case WM_CTLCOLORSTATIC: case WM_CTLCOLOREDIT: case WM_CTLCOLORLISTBOX:
     case WM_CTLCOLORBTN: case WM_CTLCOLORDLG: {
         wchar_t name[32]={}; GetClassNameW((HWND)l,name,_countof(name));
+        if(message==WM_CTLCOLORLISTBOX && GetPropW((HWND)l,L"DMPrefsNavigation")){
+            SetTextColor((HDC)w,ThemePalette::Text);SetBkColor((HDC)w,ThemePalette::Canvas);return (LRESULT)ThemeBrush(COLOR_WINDOW);
+        }
         bool input=message==WM_CTLCOLOREDIT || message==WM_CTLCOLORLISTBOX || _wcsicmp(name,L"Edit")==0;
         SetTextColor((HDC)w, IsWindowEnabled((HWND)l) ? ThemePalette::Text : ThemePalette::Muted);
         SetBkColor((HDC)w, input ? ThemePalette::Input : ThemePalette::Panel);
@@ -421,4 +429,83 @@ void ThemeClipAvatar(HDC dc, const RECT& rect, bool rounded) {
     LPtoDP(dc,points,2); // Regions use device coordinates, unlike drawing calls.
     HRGN ellipse=CreateEllipticRgn(points[0].x,points[0].y,points[1].x,points[1].y);
     if(ellipse){ExtSelectClipRgn(dc,ellipse,RGN_AND);DeleteObject(ellipse);}
+}
+
+void ThemeDrawSectionHeader(HDC dc, RECT rect, const wchar_t* text, COLORREF color, HFONT font) {
+    int saved=SaveDC(dc);
+    FillRect(dc,&rect,ThemeBrush(COLOR_WINDOW));
+    color=ThemeReadableColor(color,ThemeColor(COLOR_WINDOW));
+    int size=(rect.bottom-rect.top)/3;
+    RECT accent={rect.left+4,rect.top+size,rect.left+7,rect.bottom-size};
+    SetDCBrushColor(dc,color);FillRect(dc,&accent,(HBRUSH)GetStockObject(DC_BRUSH));
+    rect.left+=14;rect.right-=6;SetBkMode(dc,TRANSPARENT);SetTextColor(dc,color);
+    SelectObject(dc,font);DrawTextW(dc,text,-1,&rect,DT_SINGLELINE|DT_VCENTER|DT_END_ELLIPSIS|DT_NOPREFIX);
+    RestoreDC(dc,saved);
+}
+namespace {
+struct AvatarSurface {
+    HDC high=CreateCompatibleDC(NULL), low=CreateCompatibleDC(NULL), source=CreateCompatibleDC(NULL);
+    HBITMAP highBitmap=NULL, lowBitmap=NULL;
+    HGDIOBJ oldHigh=NULL, oldLow=NULL;
+    uint32_t *input=NULL,*output=NULL;
+    std::vector<unsigned char> coverage;
+    int width,height;
+    AvatarSurface(int w,int h):width(w),height(h),coverage(size_t(w)*h) {
+        BITMAPINFO info={};info.bmiHeader.biSize=sizeof(BITMAPINFOHEADER);info.bmiHeader.biPlanes=1;info.bmiHeader.biBitCount=32;info.bmiHeader.biCompression=BI_RGB;
+        info.bmiHeader.biWidth=w*2;info.bmiHeader.biHeight=-h*2;
+        highBitmap=CreateDIBSection(high,&info,DIB_RGB_COLORS,(void**)&input,NULL,0);
+        info.bmiHeader.biWidth=w;info.bmiHeader.biHeight=-h;
+        lowBitmap=CreateDIBSection(low,&info,DIB_RGB_COLORS,(void**)&output,NULL,0);
+        if(highBitmap)oldHigh=SelectObject(high,highBitmap);
+        if(lowBitmap)oldLow=SelectObject(low,lowBitmap);
+        double radius=(std::min)(w,h)/2.0-0.25;
+        for(int y=0;y<h;++y)for(int x=0;x<w;++x){
+            double dx=x+0.5-w/2.0,dy=y+0.5-h/2.0,d=dx*dx+dy*dy;
+            unsigned samples=0;
+            if(d<=(radius-1)*(radius-1))samples=64;
+            else if(d<(radius+1)*(radius+1))for(int sy=0;sy<8;++sy)for(int sx=0;sx<8;++sx){
+                dx=x+(sx+0.5)/8-w/2.0;dy=y+(sy+0.5)/8-h/2.0;
+                if(dx*dx+dy*dy<=radius*radius)++samples;
+            }
+            coverage[size_t(y)*w+x]=(unsigned char)((samples*255+32)/64);
+        }
+    }
+    ~AvatarSurface(){
+        if(oldHigh)SelectObject(high,oldHigh);if(oldLow)SelectObject(low,oldLow);
+        if(highBitmap)DeleteObject(highBitmap);if(lowBitmap)DeleteObject(lowBitmap);
+        if(high)DeleteDC(high);if(low)DeleteDC(low);if(source)DeleteDC(source);
+    }
+};
+}
+void ThemeDrawAvatar(HDC dc,HBITMAP bitmap,const RECT& rect,bool alpha,bool rounded) {
+    int w=rect.right-rect.left,h=rect.bottom-rect.top;
+    if(!bitmap || w<=0 || h<=0 || w>512 || h>512)return;
+    // Cache only bounded scratch surfaces and coverage masks. Image pixels are
+    // refreshed every draw, so animated avatars and reused bitmap handles stay correct.
+    static std::unordered_map<unsigned,std::unique_ptr<AvatarSurface>> surfaces;
+    unsigned key=unsigned(w)|(unsigned(h)<<16);
+    if(!surfaces.count(key)){
+        if(surfaces.size()>=8){GdiFlush();surfaces.clear();}
+        surfaces[key].reset(new AvatarSurface(w,h));
+    }
+    auto& surface=*surfaces[key];if(!surface.input || !surface.output)return;
+    BITMAP size={};if(!GetObject(bitmap,sizeof(size),&size))return;
+    GdiFlush();std::fill(surface.input,surface.input+size_t(w)*h*4,0);
+    auto old=SelectObject(surface.source,bitmap);
+    BLENDFUNCTION blend={AC_SRC_OVER,0,255,BYTE(alpha?AC_SRC_ALPHA:0)};
+    BOOL copied=AlphaBlend(surface.high,0,0,w*2,h*2,surface.source,0,0,size.bmWidth,size.bmHeight,blend);
+    SelectObject(surface.source,old);if(!copied)return;
+    GdiFlush();
+    for(int y=0;y<h;++y)for(int x=0;x<w;++x){
+        const uint32_t* p=surface.input+size_t(y*2)*(w*2)+x*2;
+        unsigned coverage=rounded?surface.coverage[size_t(y)*w+x]:255;
+        uint32_t pixel=0;
+        for(unsigned c=0;c<4;++c){
+            unsigned value= c==3 && !alpha ? 255 : (((p[0]>>(c*8))&255)+((p[1]>>(c*8))&255)+((p[w*2]>>(c*8))&255)+((p[w*2+1]>>(c*8))&255)+2)/4;
+            pixel|=((value*coverage+127)/255)<<(c*8);
+        }
+        surface.output[size_t(y)*w+x]=pixel;
+    }
+    blend.AlphaFormat=AC_SRC_ALPHA;
+    AlphaBlend(dc,rect.left,rect.top,w,h,surface.low,0,0,w,h,blend);
 }

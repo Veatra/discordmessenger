@@ -3,7 +3,7 @@
 #include "Main.hpp"
 #include "IChannelView.hpp"
 
-#define C_MAX_CHANNEL_MEMBER_LEN (64)
+#define C_MAX_CHANNEL_MEMBER_LEN (256)
 
 #define T_CHANNEL_VIEW_CONTAINER_CLASS TEXT("ChannelViewContainer")
 

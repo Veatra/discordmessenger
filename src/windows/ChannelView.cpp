@@ -88,8 +88,9 @@ bool ChannelView::InitTreeView()
 	m_treeImages = himl;
 	TreeView_SetImageList(hwndTV, himl, TVSIL_NORMAL);
 
-	SetWindowFont(hwndTV, g_MessageTextFont, TRUE);
- TreeView_SetItemHeight(hwndTV,ScaleByDPI(24));
+	SetWindowFont(hwndTV, g_ChannelFont, TRUE);
+ if(IsDarkTheme())TreeView_SetBkColor(hwndTV,RGB(18,18,20));
+ TreeView_SetItemHeight(hwndTV,ScaleByDPI(22));
  TreeView_SetIndent(hwndTV,ScaleByDPI(14));
 
 	return TRUE;
@@ -381,7 +382,7 @@ void ChannelView::AddChannel(const Channel & ch)
 		}
 
 		cmem.m_hItem = AddItemToTree(m_treeHwnd, cmem.str, hParent, index, parentIndex, GetIcon(ch, true)); // categories are expanded by default
-        if(IsDarkTheme() && ch.m_channelType==Channel::CATEGORY){TVITEMEX spacing={};spacing.mask=TVIF_INTEGRAL;spacing.hItem=cmem.m_hItem;spacing.iIntegral=2;SendMessage(m_treeHwnd,TVM_SETITEM,0,(LPARAM)&spacing);}
+        if(IsDarkTheme() && ch.m_channelType==Channel::CATEGORY && index>0){TVITEMEX spacing={};spacing.mask=TVIF_INTEGRAL;spacing.hItem=cmem.m_hItem;spacing.iIntegral=2;SendMessage(m_treeHwnd,TVM_SETITEM,0,(LPARAM)&spacing);}
 	}
 	else
 	{
@@ -532,23 +533,38 @@ bool ChannelView::OnNotifyTree(LRESULT& out, WPARAM wParam, LPARAM lParam)
 	{
         case NM_CUSTOMDRAW: {
             auto d=(NMTVCUSTOMDRAW*)lParam;
-            if(!IsDarkTheme()) break;
+            if(!IsDarkTheme())break;
             if(d->nmcd.dwDrawStage==CDDS_PREPAINT){out=CDRF_NOTIFYITEMDRAW;return true;}
             if(d->nmcd.dwDrawStage==CDDS_ITEMPREPAINT){
-                bool selected=(d->nmcd.uItemState&CDIS_SELECTED)!=0;
-                // Override drawing state only; native selection and keyboard focus remain intact.
-                d->nmcd.uItemState &= ~(CDIS_SELECTED|CDIS_FOCUS);
-                bool hot=(HANDLE)d->nmcd.dwItemSpec==GetPropW(m_treeHwnd,L"DMTreeHot");
-                SelectObject(d->nmcd.hdc,g_MessageTextFont);
-                COLORREF bg=selected ? ThemePalette::Selection : hot ? GetLocalSettings()->ChannelHover() : ThemePalette::Canvas;
-                d->clrTextBk=bg; d->clrText=ThemeReadableColor(ThemePalette::Text,bg);
-                TVITEM item={};item.hItem=(HTREEITEM)d->nmcd.dwItemSpec;item.mask=TVIF_PARAM;
-                if(TreeView_GetItem(m_treeHwnd,&item) && size_t(item.lParam)<m_channels.size()) {
-                    auto ch=GetDiscordInstance()->GetChannel(m_channels[item.lParam].m_snowflake);
-                    if(ch && ch->m_channelType==Channel::CATEGORY) {SelectObject(d->nmcd.hdc,g_AuthorTextFont);d->clrText=ThemePalette::Muted;}
+                TVITEM item={};item.hItem=(HTREEITEM)d->nmcd.dwItemSpec;item.mask=TVIF_PARAM|TVIF_IMAGE;
+                if(!TreeView_GetItem(m_treeHwnd,&item) || size_t(item.lParam)>=m_channels.size())break;
+                auto channel=GetDiscordInstance()->GetChannel(m_channels[item.lParam].m_snowflake);
+                bool category=channel && channel->m_channelType==Channel::CATEGORY;
+                bool selected=TreeView_GetSelection(m_treeHwnd)==item.hItem;
+                bool hot=(HANDLE)item.hItem==GetPropW(m_treeHwnd,L"DMTreeHot");
+                RECT row=d->nmcd.rc,client;GetClientRect(m_treeHwnd,&client);
+                TreeView_GetItemRect(m_treeHwnd,item.hItem,&row,FALSE);
+                TVITEMEX height={};height.mask=TVIF_INTEGRAL;height.hItem=item.hItem;
+                SendMessage(m_treeHwnd,TVM_GETITEM,0,(LPARAM)&height);
+                row.bottom=row.top+TreeView_GetItemHeight(m_treeHwnd)*std::max(1,height.iIntegral);
+                row.left=0;row.right=client.right;
+                HDC dc=d->nmcd.hdc;int saved=SaveDC(dc);
+                SetDCBrushColor(dc,RGB(18,18,20));FillRect(dc,&row,(HBRUSH)GetStockObject(DC_BRUSH));
+                // All extra category height goes BEFORE the header, never after it.
+                if(category)row.top=row.bottom-ScaleByDPI(22);
+                COLORREF bg=selected && !category ? RGB(53,54,60) : hot ? GetLocalSettings()->ChannelHover() : RGB(18,18,20);
+                SetDCBrushColor(dc,bg);FillRect(dc,&row,(HBRUSH)GetStockObject(DC_BRUSH));
+                SelectObject(dc,category?g_CategoryFont:g_ChannelFont);SetBkMode(dc,TRANSPARENT);
+                SetTextColor(dc,ThemeReadableColor(category?RGB(185,187,193):RGB(220,221,225),bg));
+                row.left=ScaleByDPI(6);
+                if(!category){
+                    int size=ScaleByDPI(16);ImageList_Draw(m_treeImages,item.iImage,dc,row.left,(row.top+row.bottom-size)/2,ILD_TRANSPARENT);
+                    row.left+=size+ScaleByDPI(5);
                 }
-                out=CDRF_NEWFONT;return true;
-            } break;
+                row.right-=ScaleByDPI(5);
+                DrawText(dc,m_channels[item.lParam].str,-1,&row,DT_SINGLELINE|DT_VCENTER|DT_END_ELLIPSIS|DT_NOPREFIX);
+                RestoreDC(dc,saved);out=CDRF_SKIPDEFAULT;return true;
+            }break;
         }
         case NM_CLICK: case NM_DBLCLK: {
             POINT point;GetCursorPos(&point);ScreenToClient(m_treeHwnd,&point);
@@ -557,6 +573,7 @@ bool ChannelView::OnNotifyTree(LRESULT& out, WPARAM wParam, LPARAM lParam)
             if(hit.hItem && TreeView_GetItem(m_treeHwnd,&item) && size_t(item.lParam)<m_channels.size()){
                 auto channel=GetDiscordInstance()->GetChannel(m_channels[item.lParam].m_snowflake);
                 if(channel && channel->m_channelType==Channel::CATEGORY){if(nmhdr->code==NM_CLICK)TreeView_Expand(m_treeHwnd,hit.hItem,TVE_TOGGLE);out=TRUE;return true;}
+                if(nmhdr->code==NM_CLICK)TreeView_SelectItem(m_treeHwnd,hit.hItem);
             } break;
         }
 		case TVN_ITEMEXPANDED:

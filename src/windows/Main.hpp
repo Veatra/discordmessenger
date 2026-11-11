@@ -63,6 +63,7 @@ extern HICON    g_DownloadIcon;
 
 extern HFONT
 	g_ChatTextFont, g_ChatAuthorFont, g_ChatAuthorUnderlinedFont,
+    g_DecorativeAuthorFont, g_DecorativeAuthorUnderlinedFont, g_ChannelFont, g_CategoryFont,
 	g_MessageTextFont,
 	g_AuthorTextFont,
 	g_AuthorTextUnderlinedFont,
@@ -154,3 +155,5 @@ void SetHeartbeatInterval(int timeMs);
 int GetProfilePictureSize();
 HBITMAP GetDefaultBitmap();
 bool ShouldBlockDoubleBuffering();
+
+HFONT ChatAuthorFont(LPCTSTR name, bool underlined=false);

@@ -351,9 +351,10 @@ click a category heading to fold/unfold it. The old square category icons are om
 File > Preferences > Appearance now offers a six-digit channel hover color
 (default `#842a52`), rounded/square chat avatars, and a chat font/size selection
 (10–24 logical pixels). Font changes require a full restart; message sizing is
-independent of sidebar/profile sizing. Choices are Noto Sans, Segoe UI, Calibri,
-Candara, Corbel, Verdana, Tahoma, Trebuchet MS, and gg sans. gg sans requires an
-existing licensed installation; unavailable choices fall back to Noto Sans.
+independent of sidebar/profile sizing. Choices include Noto Sans, Lato, Atkinson Hyperlegible, Segoe UI, Calibri,
+Candara, Corbel, Verdana, Tahoma, Trebuchet MS, gg sans, Inter, Open Sans,
+Source Sans 3 and Roboto. Fonts marked "if installed" require an existing
+installation; unavailable choices fall back to Noto Sans.
 Noto Sans, part of Discord's fallback font stack, is bundled as a private memory
 font: it does not install fonts system-wide. Keep `NotoSans-LICENSE.txt` with
 redistributed builds (source and license: `res/NotoSans-*`, upstream
@@ -385,3 +386,51 @@ to the independent kernel.org Ubuntu mirror, preserves inherited proxy settings
 through sudo, and uses bounded retries and strict index-refresh errors. Ubuntu
 archive signature verification remains enabled. This does not change runtime requirements
 or the Windows 8.1 API target / 6.0 loader header.
+
+## Compact navigation and revised preferences
+
+Dark channel rows use a near-black background and a neutral gray selection.
+Category labels use the same 13-pixel size as channels with bold weight, no
+inherited indentation, and their extra space **above** the label. The heading
+stays next to its first channel. Native tree navigation and category folding are
+retained; text is ellipsized when necessary rather than drawing outside the pane.
+
+Message font size/family affects message content; usernames, timestamps, channel
+headings and sidebar fonts have separate stable settings. Usernames use 16 pixels,
+with an 18-pixel boost for decorative mathematical/script Unicode names, including
+the matching underline font. This preserves the original name characters; it does
+not download proprietary Nitro font assets. Avatars increase from 36 to 42 logical
+pixels with the associated row/column geometry. Rounded chat avatars use reusable
+32-bit scratch surfaces, 2x downsampling and cached fractional edge coverage.
+The renderer reads current bitmap pixels every paint so animated/replaced images
+stay current. Its cache is bounded and it adds no background repaint timer.
+
+Member groups are composed with native member rows in a single paint buffer, then
+role-colored headers are drawn over the native headings. This avoids dependence
+on group custom-draw callbacks that can leave black text/white rules on Windows.
+The member control now uses the standard common-controls subclass chain.
+
+Preferences has vertical page navigation, section headings and a Done button.
+All six existing pages and their settings handlers remain. The window is resizable;
+pages scroll vertically/horizontally when space is limited and focused controls
+are brought into view. Longer future pages therefore remain reachable instead of
+requiring another row of tabs or clipped fields. Font changes still require a full
+restart. Noto Sans, Lato and Atkinson Hyperlegible are bundled as private fonts;
+Inter, Open Sans, Source Sans 3 and Roboto are also listed when choosing a font
+(they require installation, like gg sans). Other existing choices remain.
+Redistributed packages include each bundled font's SIL Open Font License.
+
+The offline `tests/preferences_layout.py` fixture compiles the actual preferences,
+font initialization, channel drawing and member paint procedures against stub data.
+It checks all pages, resize/scroll restoration, fixed structural fonts at 12/24-pixel
+message sizes, independent font families, category gap placement and gray selection.
+For example, with matching MinGW tools and Wine installed:
+
+```sh
+python3 tests/preferences_layout.py --compiler x86_64-w64-mingw32-g++-posix --runner wine
+```
+
+The existing control fixture also checks soft circle edges, square avatars,
+nonzero paint viewport offsets, same-handle bitmap updates and all bundled fonts.
+Link it with `msimg32` in addition to its existing libraries. These are offline
+Win32 tests under a compatibility runner, not live Discord or native Windows 8.1 QA.

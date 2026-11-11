@@ -1,4 +1,6 @@
 #include "Theme.hpp"
+#include "ThemeChrome.hpp"
+#include "DoubleBufferingHelper.hpp"
 #include "MemberList.hpp"
 #include "ProfilePopout.hpp"
 #include "state/ProfileCache.hpp"
@@ -12,11 +14,6 @@ WNDCLASS MemberList::g_MemberListClass;
 #define OVERLAY_DND     3
 #define OVERLAY_IDLE    2
 #define OVERLAY_ONLINE  1
-
-static int GetProfileBorderSize()
-{
-	return ScaleByDPI((PROFILE_PICTURE_SIZE_DEF + 12));
-}
 
 MemberList::~MemberList()
 {
@@ -105,7 +102,7 @@ void MemberList::Update()
 			// not worth it
 			continue;
 
-		LPTSTR strName = ConvertCppStringToTString(pGuild->GetGroupName(pGroup->m_groupId) + " - " + std::to_string(pGroup->m_groupCount));
+		LPTSTR strName = ConvertCppStringToTString(pGuild->GetGroupName(pGroup->m_groupId) + " (" + std::to_string(pGroup->m_groupCount) + ")");
 		LVGROUP grpz{};
 		grpz.cbSize = sizeof(LVGROUP);
 		grpz.mask = LVGF_HEADER | LVGF_GROUPID;
@@ -168,35 +165,6 @@ bool MemberList::OnNotify(LRESULT& out, WPARAM wParam, LPARAM lParam)
 
 	switch (hdr->code)
 	{
-        case NM_CUSTOMDRAW: {
-            auto draw=(NMLVCUSTOMDRAW*)lParam;
-            if(!IsDarkTheme()) break;
-            if(draw->nmcd.dwDrawStage==CDDS_PREPAINT){out=CDRF_NOTIFYITEMDRAW;return true;}
-            if(draw->nmcd.dwDrawStage==CDDS_ITEMPREPAINT && draw->dwItemType==LVCDI_GROUP) {out=CDRF_NOTIFYPOSTPAINT;return true;}
-            if(draw->nmcd.dwDrawStage==CDDS_ITEMPOSTPAINT && draw->dwItemType==LVCDI_GROUP) {
-                RECT r={};
-                int index=int(draw->nmcd.dwItemSpec);
-                if(!ListView_GetGroupRect(m_listHwnd,index,LVGGR_HEADER,&r)){out=CDRF_DODEFAULT;return true;}
-                FillRect(draw->nmcd.hdc,&r,ThemeBrush(COLOR_WINDOW)); COLORREF color=ThemePalette::Muted;
-                Guild* guild=GetDiscordInstance()->GetGuild(m_guild);
-                if(guild && index>=0 && index<int(m_groups.size())) {
-                    auto role=guild->m_roles.find(m_groups[index]);
-                    if(role!=guild->m_roles.end() && role->second.m_colorOriginal) {
-                        unsigned c=role->second.m_colorOriginal;color=RGB(c>>16&255,c>>8&255,c&255);
-                    }
-                }
-                wchar_t label[512]={};LVGROUP group={};group.cbSize=sizeof(group);group.mask=LVGF_HEADER;group.pszHeader=label;group.cchHeader=512;
-                ListView_GetGroupInfo(m_listHwnd,index,&group);
-                auto old=SelectObject(draw->nmcd.hdc,g_AuthorTextFont);
-                SetBkMode(draw->nmcd.hdc,TRANSPARENT);SetTextColor(draw->nmcd.hdc,ThemeReadableColor(color,ThemePalette::Canvas));
-                RECT accent={r.left+ScaleByDPI(4),r.top+ScaleByDPI(7),r.left+ScaleByDPI(6),r.bottom-ScaleByDPI(5)};
-                COLORREF brush=SetDCBrushColor(draw->nmcd.hdc,ThemeReadableColor(color,ThemePalette::Canvas));
-                FillRect(draw->nmcd.hdc,&accent,(HBRUSH)GetStockObject(DC_BRUSH));SetDCBrushColor(draw->nmcd.hdc,brush);
-                r.left+=ScaleByDPI(12);
-                DrawTextW(draw->nmcd.hdc,label,-1,&r,DT_SINGLELINE|DT_VCENTER|DT_END_ELLIPSIS|DT_NOPREFIX);
-                SelectObject(draw->nmcd.hdc,old);out=CDRF_DODEFAULT;return true;
-            } break;
-        }
 		// TODO: WTF IS THIS?!  Looks like the lParam structure is a hittestinfo after the hdr.
 		// This ain't defined anywhere.  Only modern Windows seems to emit it.  I don't know why
 		case ((UINT) -165):
@@ -284,11 +252,9 @@ void MemberList::UpdateMembers(std::set<Snowflake>& mems)
 
 void MemberList::Initialize()
 {
-	m_origListWndProc = (WNDPROC) GetWindowLongPtr(m_listHwnd, GWLP_WNDPROC);
-	SetWindowLongPtr(m_listHwnd, GWLP_USERDATA, (LONG_PTR) this);
-	SetWindowLongPtr(m_listHwnd, GWLP_WNDPROC,  (LONG_PTR) ListWndProc);
+    SetWindowSubclass(m_listHwnd,ListWndProc,0x444d4d42,(DWORD_PTR)this);
 
-	ListView_SetExtendedListViewStyleEx(m_listHwnd, LVS_EX_DOUBLEBUFFER, LVS_EX_DOUBLEBUFFER);
+	ListView_SetExtendedListViewStyleEx(m_listHwnd, LVS_EX_DOUBLEBUFFER, IsDarkTheme()?0:LVS_EX_DOUBLEBUFFER);
 
 	TCHAR nameStr[] = TEXT("Name");
 	LVCOLUMN col{};
@@ -302,18 +268,53 @@ void MemberList::Initialize()
 	SetWindowFont(m_listHwnd, g_MessageTextFont, TRUE);
 }
 
-LRESULT MemberList::ListWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+void MemberList::PaintGroupHeaders(HDC dc)
 {
-	MemberList* pList = (MemberList*)GetWindowLongPtr(hWnd, GWLP_USERDATA);
-	assert(pList->m_listHwnd == hWnd);
+    if(!m_listHwnd)return;
+    RECT client;GetClientRect(m_listHwnd,&client);
+    Guild* guild=GetDiscordInstance()->GetGuild(m_guild);
+    for(size_t index=0;index<m_groups.size();++index){
+        RECT r={};
+        if(!ListView_GetGroupRect(m_listHwnd,int(index),LVGGR_HEADER,&r) || r.bottom<=0 || r.top>=client.bottom)continue;
+        COLORREF color=ThemePalette::Muted;
+        if(guild){auto role=guild->m_roles.find(m_groups[index]);if(role!=guild->m_roles.end() && role->second.m_colorOriginal){unsigned c=role->second.m_colorOriginal;color=RGB(c>>16&255,c>>8&255,c&255);}}
+        wchar_t label[512]={};LVGROUP group={};group.cbSize=sizeof(group);group.mask=LVGF_HEADER;group.pszHeader=label;group.cchHeader=512;
+        ListView_GetGroupInfo(m_listHwnd,int(index),&group);
+        ThemeDrawSectionHeader(dc,r,label,color,g_CategoryFont);
+    }
+}
+
+LRESULT CALLBACK MemberList::ListWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR id, DWORD_PTR data)
+{
+	MemberList* pList = (MemberList*)data;
+	assert(pList);
 
 	switch (uMsg)
 	{
+        case WM_ERASEBKGND: if(IsDarkTheme())return 1;break;
+        case WM_PAINT:
+            if(IsDarkTheme()){
+                PAINTSTRUCT ps={};HDC dc=BeginPaint(hWnd,&ps);
+                if(ps.rcPaint.right>ps.rcPaint.left && ps.rcPaint.bottom>ps.rcPaint.top){
+                    DoubleBufferingHelper buffer(dc,ps.rcPaint);
+                    FillRect(buffer.HdcMem(),&ps.rcPaint,ThemeBrush(COLOR_WINDOW));
+                    DefSubclassProc(hWnd,WM_PRINTCLIENT,(WPARAM)buffer.HdcMem(),PRF_CLIENT|PRF_ERASEBKGND);
+                    pList->PaintGroupHeaders(buffer.HdcMem());
+                }
+                EndPaint(hWnd,&ps);ThemeRefreshChrome(hWnd);return 0;
+            }break;
+        case WM_PRINTCLIENT:
+            if(IsDarkTheme()){
+                LRESULT result=DefSubclassProc(hWnd,uMsg,wParam,lParam);
+                pList->PaintGroupHeaders((HDC)wParam);return result;
+            }break;
+
+        case WM_NCDESTROY: {
+            RemoveWindowSubclass(hWnd,ListWndProc,id);return DefSubclassProc(hWnd,uMsg,wParam,lParam);
+        }
 		case WM_DESTROY:
 		{
-			SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR) NULL);
-			SetWindowLongPtr(hWnd, GWLP_WNDPROC,  (LONG_PTR) pList->m_origListWndProc);
-			pList->m_listHwnd = NULL;
+            pList->m_listHwnd = NULL;
 			break;
 		}
 		case WM_MOUSELEAVE:
@@ -325,7 +326,7 @@ LRESULT MemberList::ListWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 		}
 	}
 
-	return CallWindowProc(pList->m_origListWndProc, hWnd, uMsg, wParam, lParam);
+	return DefSubclassProc(hWnd,uMsg,wParam,lParam);
 }
 
 LRESULT MemberList::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -426,14 +427,14 @@ LRESULT MemberList::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			{
 				// draw profile picture frame
 				int sz = ScaleByDPI(PROFILE_PICTURE_SIZE_DEF + 12);
-				int szDraw = GetProfileBorderSize();
 
-				ThemeDrawIconEx(hdc, rcItem.left, rcItem.top, g_ProfileBorderIcon, szDraw, szDraw, 0, NULL, DI_NORMAL | DI_COMPAT);
+                // Avatar silhouettes replace the old raised frame.
 
 				// draw profile picture
 				bool hasAlpha = false;
 				HBITMAP hbm = GetAvatarCache()->GetImage(pf->m_avatarlnk, hasAlpha)->GetFirstFrame(), hbmmask = NULL;
-				DrawBitmap(hdc, hbm, rcItem.left + ScaleByDPI(6), rcItem.top + ScaleByDPI(4), NULL, CLR_NONE, GetProfilePictureSize(), 0, hasAlpha);
+                RECT avatar={rcItem.left+ScaleByDPI(6),rcItem.top+ScaleByDPI(4),rcItem.left+ScaleByDPI(6)+GetProfilePictureSize(),rcItem.top+ScaleByDPI(4)+GetProfilePictureSize()};
+                ThemeDrawAvatar(hdc,hbm,avatar,hasAlpha,false);
 
 				// draw status indicator
 				DrawActivityStatus(hdc, rcItem.left + ScaleByDPI(6), rcItem.top + ScaleByDPI(4), pf->m_activeStatus);
@@ -471,7 +472,7 @@ LRESULT MemberList::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			COLORREF oldTextColor = SetTextColor(hdc, nameTextColor);
 			COLORREF oldBkColor   = SetBkColor  (hdc, backgdColor);
 
-			HGDIOBJ oldObj = SelectObject(hdc, g_AuthorTextFont);
+			HGDIOBJ oldObj = SelectObject(hdc, ChatAuthorFont(nameTstr));
 
 			if (compact || !*statTstr) {
 				rcText.top+=2;

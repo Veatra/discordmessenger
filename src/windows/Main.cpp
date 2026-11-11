@@ -170,6 +170,7 @@ HICON    g_ProfileBorderIconGold;
 HICON    g_ProfileBorderIconUnread;
 HFONT
 	g_ChatTextFont, g_ChatAuthorFont, g_ChatAuthorUnderlinedFont,
+    g_DecorativeAuthorFont, g_DecorativeAuthorUnderlinedFont, g_ChannelFont, g_CategoryFont,
 	g_MessageTextFont,
 	g_AuthorTextFont,
 	g_AuthorTextUnderlinedFont,
@@ -1785,9 +1786,12 @@ static int CALLBACK MessageFontFound(const LOGFONT*,const TEXTMETRIC*,DWORD,LPAR
 
 void InitializeFonts()
 {
- HRSRC fontResource=FindResource(g_hInstance,MAKEINTRESOURCE(IDR_NOTO_FONT),RT_RCDATA);
- if(fontResource){HGLOBAL data=LoadResource(g_hInstance,fontResource);DWORD count=0;
- AddFontMemResourceEx(LockResource(data),SizeofResource(g_hInstance,fontResource),NULL,&count);}
+ for(int id:{IDR_NOTO_FONT,IDR_ATKINSON_FONT,IDR_LATO_FONT}){
+     HRSRC resource=FindResource(g_hInstance,MAKEINTRESOURCE(id),RT_RCDATA);
+     if(resource){HGLOBAL data=LoadResource(g_hInstance,resource);DWORD count=0;
+         if(data)AddFontMemResourceEx(LockResource(data),SizeofResource(g_hInstance,resource),NULL,&count);
+     }
+ }
 	LOGFONT lf{};
 	bool haveFont = SystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof lf, &lf, 0);
 	lf.lfItalic = false;
@@ -1797,14 +1801,14 @@ void InitializeFonts()
  lf.lfHeight=-ScaleByDPI(GetLocalSettings()->MessageFontSize());
  auto face=ConvertCppStringToTString(GetLocalSettings()->MessageFont());
  _tcsncpy(lf.lfFaceName,face,LF_FACESIZE-1); free(face);
- if(GetLocalSettings()->MessageFont()!="Noto Sans") {
+ if(GetLocalSettings()->MessageFont()!="Noto Sans" && GetLocalSettings()->MessageFont()!="Lato" && GetLocalSettings()->MessageFont()!="Atkinson Hyperlegible") {
      bool found=false;HDC dc=GetDC(NULL);LOGFONT query=lf;query.lfCharSet=DEFAULT_CHARSET;
      EnumFontFamiliesEx(dc,&query,MessageFontFound,(LPARAM)&found,0);ReleaseDC(NULL,dc);
      if(!found)_tcscpy(lf.lfFaceName,TEXT("Noto Sans"));
  }
  lf.lfQuality=CLEARTYPE_QUALITY;
  haveFont=true;
-	lf.lfHeight = ScaleByUser(lf.lfHeight);
+	// ScaleByDPI already includes the UI scale.
 
 	HFONT hf, hfb, hfi, hfbi, hfu, hfbu, hfiu, hfbiu, hfbh, hfbh2, hfbih, hfbih2;
 	hf = hfb = hfi = hfbi = hfu = hfbu = hfiu = hfbiu = hfbh = hfbh2 = hfbih = hfbih2 = NULL;
@@ -1900,11 +1904,11 @@ void InitializeFonts()
 
 	g_MessageTextFont = hf;
 	g_AuthorTextFont = hfb;
- LOGFONT date=lf; date.lfItalic=FALSE; date.lfWeight=FW_NORMAL;
- date.lfHeight=-ScaleByUser(ScaleByDPI(11)); date.lfUnderline=FALSE;
+ LOGFONT date=lf; _tcscpy(date.lfFaceName,TEXT("Noto Sans")); date.lfItalic=FALSE; date.lfWeight=FW_NORMAL;
+ date.lfHeight=-ScaleByDPI(11); date.lfUnderline=FALSE;
  g_DateTextFont=CreateFontIndirect(&date);
- LOGFONT heading=lf; heading.lfItalic=FALSE; heading.lfUnderline=FALSE;
- heading.lfHeight=-ScaleByUser(ScaleByDPI(16)); heading.lfWeight=FW_BOLD;
+ LOGFONT heading=lf; _tcscpy(heading.lfFaceName,TEXT("Noto Sans")); heading.lfItalic=FALSE; heading.lfUnderline=FALSE;
+ heading.lfHeight=-ScaleByDPI(16); heading.lfWeight=FW_BOLD;
  g_GuildCaptionFont=CreateFontIndirect(&heading);
 	g_GuildSubtitleFont = hf;
 	g_GuildInfoFont = hfi;
@@ -1915,14 +1919,18 @@ void InitializeFonts()
 	g_TypingRegFont = hfi;
 	g_TypingBoldFont = hfbi;
     g_ChatTextFont=hf;
-    LOGFONT author=lf;author.lfItalic=FALSE;author.lfUnderline=FALSE;author.lfWeight=FW_BOLD;
-    author.lfHeight=-ScaleByUser(ScaleByDPI(GetLocalSettings()->MessageFontSize()+1));
+    LOGFONT author=lf;_tcscpy(author.lfFaceName,TEXT("Noto Sans"));author.lfItalic=FALSE;author.lfUnderline=FALSE;author.lfWeight=FW_BOLD;
+    author.lfHeight=-ScaleByDPI(16);
     g_ChatAuthorFont=CreateFontIndirect(&author);author.lfUnderline=TRUE;
     g_ChatAuthorUnderlinedFont=CreateFontIndirect(&author);
+    author.lfHeight=-ScaleByDPI(18);author.lfUnderline=FALSE;g_DecorativeAuthorFont=CreateFontIndirect(&author);
+    author.lfUnderline=TRUE;g_DecorativeAuthorUnderlinedFont=CreateFontIndirect(&author);
     // Message sizing is independent of fixed sidebar/profile layouts.
-    LOGFONT ui=lf;_tcscpy(ui.lfFaceName,TEXT("Noto Sans"));ui.lfHeight=-ScaleByUser(ScaleByDPI(14));
+    LOGFONT ui=lf;_tcscpy(ui.lfFaceName,TEXT("Noto Sans"));ui.lfHeight=-ScaleByDPI(14);
     ui.lfItalic=FALSE;ui.lfUnderline=FALSE;ui.lfWeight=FW_NORMAL;
-    g_MessageTextFont=CreateFontIndirect(&ui);ui.lfWeight=FW_BOLD;g_AuthorTextFont=CreateFontIndirect(&ui);
+    g_MessageTextFont=CreateFontIndirect(&ui);
+    ui.lfHeight=-ScaleByDPI(13);g_ChannelFont=CreateFontIndirect(&ui);ui.lfWeight=FW_BOLD;g_CategoryFont=CreateFontIndirect(&ui);
+    ui.lfHeight=-ScaleByDPI(14);g_AuthorTextFont=CreateFontIndirect(&ui);
     ui.lfUnderline=TRUE;g_AuthorTextUnderlinedFont=CreateFontIndirect(&ui);
     g_AccountInfoFont=g_AuthorTextFont;g_AccountTagFont=g_MessageTextFont;
     g_GuildSubtitleFont=g_MessageTextFont;g_SendButtonFont=g_MessageTextFont;
@@ -2245,4 +2253,14 @@ void SetHeartbeatInterval(int timeMs)
 	{
 		g_HeartbeatTimer = SetTimer(g_Hwnd, 0, timeMs, OnHeartbeatTimer);
 	}
+}
+
+HFONT ChatAuthorFont(LPCTSTR name, bool underlined) {
+    bool decorative=false;
+    for(const wchar_t* p=name;p && *p;++p){
+        unsigned code=*p;
+        if(code>=0xd800 && code<=0xdbff && p[1]>=0xdc00 && p[1]<=0xdfff){code=0x10000+((code-0xd800)<<10)+(p[1]-0xdc00);++p;}
+        if((code>=0x1d400 && code<=0x1d7ff) || (code>=0x2100 && code<=0x214f)){decorative=true;break;}
+    }
+    return decorative ? (underlined?g_DecorativeAuthorUnderlinedFont:g_DecorativeAuthorFont) : (underlined?g_ChatAuthorUnderlinedFont:g_ChatAuthorFont);
 }

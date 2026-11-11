@@ -487,3 +487,8 @@ void ThemeChromeWindow(HWND window) {
 }
 
 bool ThemeMenuPopupActive() { return openingMenu!=NULL; }
+
+void ThemeRefreshChrome(HWND window) {
+    DWORD_PTR state=0;
+    if(GetWindowSubclass(window,ChromeProc,ChromeId,&state))PaintScrollbars(window,(Chrome*)state);
+}

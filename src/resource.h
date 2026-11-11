@@ -297,7 +297,7 @@
 #define IDS_CONFIRM_UNPIN               776
 #define IDS_CONFIRM_UNPIN_TITLE         777
 #define IDS_ETA_STRING_DOWNLOADED       778
-#define IDC_OPTIONS_TABS                801
+#define IDC_OPTIONS_NAV                801
 #define IDC_MY_ACCOUNT_BOX              802
 #define IDC_MY_ACCOUNT_NAME             803
 #define IDC_EMAIL_DISPLAY               804
@@ -527,3 +527,7 @@
 #define IDC_ROUND_AVATARS 1904
 #define IDC_CHANNEL_HOVER 1905
 #define IDR_NOTO_FONT 1906
+
+#define IDR_ATKINSON_FONT 1907
+#define IDR_LATO_FONT 1908
+#define IDC_PREFS_DONE 1909

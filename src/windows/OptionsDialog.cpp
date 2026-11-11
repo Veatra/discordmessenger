@@ -55,20 +55,31 @@ DLGTEMPLATEEX; // huh??
 
 struct DialogHeader
 {
-	HWND hwndTab = NULL;     // tab control
+	HWND hwndNav = NULL;     // settings navigation
 	HWND hwndDisplay = NULL; // current child dialog box
+    HWND hwndHeading = NULL;
+    HWND hwndDone=NULL;
 	RECT rcDisplay{};
 	DLGTEMPLATEEX* apRes[C_PAGES] = { NULL };
 	int  pageNum = 0;
 };
 
-void AddTab(HWND hwndTab, TCITEM& tie, int index, LPTSTR str)
-{
-	assert(index >= 0 && index < C_PAGES && "Huh?");
+static const char* const kMessageFonts[]={
+    "Noto Sans","Lato","Atkinson Hyperlegible","Segoe UI","Calibri","Candara","Corbel","Verdana","Tahoma","Trebuchet MS","gg sans","Inter","Open Sans","Source Sans 3","Roboto"
+};
 
-	tie.pszText = str;
+void AddSettingsPage(HWND navigation,int index,LPCTSTR text) {
+    SendMessage(navigation,LB_INSERTSTRING,index,(LPARAM)text);
+}
 
-	TabCtrl_InsertItem(hwndTab, index, &tie);
+static BOOL CALLBACK PreferenceSection(HWND control,LPARAM) {
+    wchar_t name[32]={};GetClassNameW(control,name,32);
+    if(!wcscmp(name,L"Button")){
+        LONG_PTR style=GetWindowLongPtr(control,GWL_STYLE);
+        if((style&BS_TYPEMASK)==BS_GROUPBOX){SetPropW(control,L"DMPrefsSection",(HANDLE)1);SetWindowFont(control,g_CategoryFont,TRUE);}
+        else SetWindowLongPtr(control,GWL_STYLE,style|BS_NOTIFY);
+    }
+    return TRUE;
 }
 
 DLGTEMPLATEEX* LockDialogResource(LPCTSTR lpszResName)
@@ -149,8 +160,9 @@ void OptionsInitPage(HWND hwndDlg, int pageNum)
 				GetSettingsManager()->GetMessageCompact() ? IDC_APPEARANCE_COMPACT : IDC_APPEARANCE_COZY
 			);
 
-            const char* fonts[]={"Noto Sans","Segoe UI","Calibri","Candara","Corbel","Verdana","Tahoma","Trebuchet MS","gg sans"};
-            for(auto font:fonts){auto text=ConvertCppStringToTString(std::string(font)=="gg sans"?"gg sans (if installed)":font);int idx=(int)SendDlgItemMessage(hwndDlg,IDC_MESSAGE_FONT,CB_ADDSTRING,0,(LPARAM)text);free(text);if(GetLocalSettings()->MessageFont()==font)SendDlgItemMessage(hwndDlg,IDC_MESSAGE_FONT,CB_SETCURSEL,idx,0);}
+            const auto& fonts=kMessageFonts;
+            for(auto font:fonts){std::string label=font;if(label=="gg sans" || label=="Inter" || label=="Open Sans" || label=="Source Sans 3" || label=="Roboto")label+=" (if installed)";auto text=ConvertCppStringToTString(label);int idx=(int)SendDlgItemMessage(hwndDlg,IDC_MESSAGE_FONT,CB_ADDSTRING,0,(LPARAM)text);free(text);if(GetLocalSettings()->MessageFont()==font)SendDlgItemMessage(hwndDlg,IDC_MESSAGE_FONT,CB_SETCURSEL,idx,0);}
+            SendDlgItemMessage(hwndDlg,IDC_MESSAGE_FONT,CB_SETDROPPEDWIDTH,ScaleByDPI(300),0);
             for(int size=10;size<=24;++size){TCHAR text[8];_stprintf(text,TEXT("%d px"),size);int idx=(int)SendDlgItemMessage(hwndDlg,IDC_MESSAGE_SIZE,CB_ADDSTRING,0,(LPARAM)text);if(size==GetLocalSettings()->MessageFontSize())SendDlgItemMessage(hwndDlg,IDC_MESSAGE_SIZE,CB_SETCURSEL,idx,0);}
             CheckDlgButton(hwndDlg,IDC_ROUND_AVATARS,GetLocalSettings()->RoundAvatars()?BST_CHECKED:BST_UNCHECKED);
             unsigned c=GetLocalSettings()->ChannelHover();TCHAR hex[16];_stprintf(hex,TEXT("%02X%02X%02X"),c&255,(c>>8)&255,(c>>16)&255);SetDlgItemText(hwndDlg,IDC_CHANNEL_HOVER,hex);
@@ -290,7 +302,8 @@ void WINAPI OnChildDialogInit(HWND hwndDlg)
 		(pHdr->rcDisplay.bottom - pHdr->rcDisplay.top),
 		SWP_SHOWWINDOW);
 
-	XEnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
+    SetWindowLongPtr(hwndDlg,GWL_EXSTYLE,GetWindowLongPtr(hwndDlg,GWL_EXSTYLE)|WS_EX_CONTROLPARENT);
+    EnumChildWindows(hwndDlg,PreferenceSection,0);
 
 	int pageNum = pHdr->pageNum;
 
@@ -371,7 +384,7 @@ INT_PTR OptionsHandleCommand(HWND hwndParent, HWND hWnd, int pageNum, UINT uMsg,
 			switch (LOWORD(wParam))
 			{
                 case IDC_MESSAGE_FONT:
-                    if(HIWORD(wParam)==CBN_SELCHANGE){const char* fonts[]={"Noto Sans","Segoe UI","Calibri","Candara","Corbel","Verdana","Tahoma","Trebuchet MS","gg sans"};int idx=(int)SendDlgItemMessage(hWnd,IDC_MESSAGE_FONT,CB_GETCURSEL,0,0);if(idx>=0 && idx<9)GetLocalSettings()->SetMessageFont(fonts[idx]);GetLocalSettings()->Save();}break;
+                    if(HIWORD(wParam)==CBN_SELCHANGE){const auto& fonts=kMessageFonts;int idx=(int)SendDlgItemMessage(hWnd,IDC_MESSAGE_FONT,CB_GETCURSEL,0,0);if(idx>=0 && idx<int(_countof(kMessageFonts)))GetLocalSettings()->SetMessageFont(fonts[idx]);GetLocalSettings()->Save();}break;
                 case IDC_MESSAGE_SIZE:
                     if(HIWORD(wParam)==CBN_SELCHANGE){int idx=(int)SendDlgItemMessage(hWnd,IDC_MESSAGE_SIZE,CB_GETCURSEL,0,0);if(idx!=CB_ERR)GetLocalSettings()->SetMessageFontSize(idx+10);GetLocalSettings()->Save();}break;
                 case IDC_ROUND_AVATARS:
@@ -651,13 +664,60 @@ INT_PTR OptionsHandleCommand(HWND hwndParent, HWND hWnd, int pageNum, UINT uMsg,
 	return 0;
 }
 
+static void ScrollSettingsPage(HWND page,int axis,int position) {
+    SCROLLINFO si={};si.cbSize=sizeof(si);si.fMask=SIF_ALL;GetScrollInfo(page,axis,&si);
+    int old=si.nPos;si.nPos=position;SetScrollInfo(page,axis,&si,TRUE);GetScrollInfo(page,axis,&si);
+    ScrollWindowEx(page,axis==SB_HORZ?old-si.nPos:0,axis==SB_VERT?old-si.nPos:0,NULL,NULL,NULL,NULL,SW_SCROLLCHILDREN|SW_INVALIDATE|SW_ERASE);
+}
+
 INT_PTR CALLBACK OptionsChildDialogProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	HWND hwndParent = GetParent(hWnd);
 	DialogHeader* pHdr = (DialogHeader*)GetWindowLongPtr(hwndParent, GWLP_USERDATA);
+    if(!pHdr)return FALSE;
 	switch (uMsg)
 	{
+        case WM_SIZE: {
+            if(GetPropW(hWnd,L"DMPrefsSizing"))return TRUE;
+            SetPropW(hWnd,L"DMPrefsSizing",(HANDLE)1);
+            RECT content={0,0,pHdr->apRes[pHdr->pageNum]->cx,pHdr->apRes[pHdr->pageNum]->cy};MapDialogRect(hWnd,&content);
+            for(int pass=0;pass<2;++pass)for(int axis=0;axis<2;++axis){
+                RECT view;GetClientRect(hWnd,&view);int bar=axis?SB_HORZ:SB_VERT;
+                SCROLLINFO old={};old.cbSize=sizeof(old);old.fMask=SIF_POS;GetScrollInfo(hWnd,bar,&old);
+                SCROLLINFO si={};si.cbSize=sizeof(si);si.fMask=SIF_RANGE|SIF_PAGE;si.nMax=(axis?content.right:content.bottom)-1;si.nPage=axis?view.right:view.bottom;
+                SetScrollInfo(hWnd,bar,&si,TRUE);si.fMask=SIF_POS;GetScrollInfo(hWnd,bar,&si);
+                if(si.nPos!=old.nPos)ScrollWindowEx(hWnd,axis?old.nPos-si.nPos:0,axis?0:old.nPos-si.nPos,NULL,NULL,NULL,NULL,SW_SCROLLCHILDREN|SW_INVALIDATE|SW_ERASE);
+            }
+            RemovePropW(hWnd,L"DMPrefsSizing");return TRUE;
+        }
+        case WM_VSCROLL: case WM_HSCROLL: {
+            int axis=uMsg==WM_VSCROLL?SB_VERT:SB_HORZ;SCROLLINFO si={};si.cbSize=sizeof(si);si.fMask=SIF_ALL;GetScrollInfo(hWnd,axis,&si);
+            int pos=si.nPos;
+            switch(LOWORD(wParam)){
+                case SB_LINEUP:pos-=ScaleByDPI(24);break;case SB_LINEDOWN:pos+=ScaleByDPI(24);break;
+                case SB_PAGEUP:pos-=si.nPage;break;case SB_PAGEDOWN:pos+=si.nPage;break;
+                case SB_THUMBTRACK:case SB_THUMBPOSITION:pos=si.nTrackPos;break;
+                case SB_TOP:pos=si.nMin;break;case SB_BOTTOM:pos=si.nMax;break;
+            }
+            ScrollSettingsPage(hWnd,axis,pos);return TRUE;
+        }
+        case WM_MOUSEWHEEL: {
+            SCROLLINFO si={};si.cbSize=sizeof(si);si.fMask=SIF_POS;GetScrollInfo(hWnd,SB_VERT,&si);
+            ScrollSettingsPage(hWnd,SB_VERT,si.nPos-GET_WHEEL_DELTA_WPARAM(wParam)*ScaleByDPI(48)/WHEEL_DELTA);return TRUE;
+        }
+
 		case WM_COMMAND:
+            if(lParam && GetFocus()==(HWND)lParam){
+                RECT control,view;GetWindowRect((HWND)lParam,&control);MapWindowPoints(NULL,hWnd,(POINT*)&control,2);GetClientRect(hWnd,&view);
+                for(int axis=0;axis<2;++axis){
+                    int first=axis?control.left:control.top,last=axis?control.right:control.bottom,edge=axis?view.right:view.bottom;
+                    int delta=first<0?first:last>edge?last-edge:0;
+                    if(delta){SCROLLINFO si={};si.cbSize=sizeof(si);si.fMask=SIF_POS;GetScrollInfo(hWnd,axis?SB_HORZ:SB_VERT,&si);ScrollSettingsPage(hWnd,axis?SB_HORZ:SB_VERT,si.nPos+delta);}
+                }
+            }
+            if(lParam){wchar_t name[32]={};GetClassNameW((HWND)lParam,name,32);
+                if(!wcscmp(name,L"Button") && HIWORD(wParam)!=BN_CLICKED && HIWORD(wParam)!=BN_DOUBLECLICKED)return TRUE;
+            }
 			return OptionsHandleCommand(hwndParent, hWnd, pHdr->pageNum, uMsg, wParam, lParam);
 
 		case WM_INITDIALOG:
@@ -669,7 +729,7 @@ INT_PTR CALLBACK OptionsChildDialogProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 	return 0L;
 }
 
-// Processes the TCN_SELCHANGE notification.
+// Switch the selected settings page without changing its existing bindings.
 // hwndDlg - handle to the parent dialog box.
 //
 void OnSelChanged(HWND hwndDlg)
@@ -678,8 +738,11 @@ void OnSelChanged(HWND hwndDlg)
 	// Get the dialog header data.
 	DialogHeader *pHdr = (DialogHeader*) GetWindowLongPtr(hwndDlg, GWLP_USERDATA);
 
-	// Get the index of the selected tab.
-	int iSel = TabCtrl_GetCurSel(pHdr->hwndTab);
+	// Get the selected navigation entry.
+	int iSel = (int)SendMessage(pHdr->hwndNav,LB_GETCURSEL,0,0);
+    if(iSel<0 || iSel>=C_PAGES)return;
+    TCHAR heading[256]={};SendMessage(pHdr->hwndNav,LB_GETTEXT,iSel,(LPARAM)heading);SetWindowText(pHdr->hwndHeading,heading);
+    if(pHdr->hwndDisplay)SetFocus(pHdr->hwndNav);
 
 	// Destroy the current child dialog box, if any.
 	if (pHdr->hwndDisplay != NULL)
@@ -693,41 +756,46 @@ void OnSelChanged(HWND hwndDlg)
 	return;
 }
 
+static void LayoutPreferences(HWND window) {
+    auto data=(DialogHeader*)GetWindowLongPtr(window,GWLP_USERDATA);if(!data || !data->hwndNav)return;
+    RECT r;GetClientRect(window,&r);int pad=ScaleByDPI(16),nav=ScaleByDPI(175),title=ScaleByDPI(32);
+    MoveWindow(data->hwndNav,pad,pad,nav,std::max(1,int(r.bottom)-pad*2),TRUE);
+    MoveWindow(data->hwndHeading,nav+pad*2,pad,std::max(1,int(r.right)-nav-pad*3),title,TRUE);
+    data->rcDisplay={nav+pad*2,pad+title,std::max(nav+pad*2+1,int(r.right)-pad),std::max(pad+title+1,int(r.bottom)-pad-ScaleByDPI(40))};
+    MoveWindow(data->hwndDone,r.right-pad-ScaleByDPI(88),r.bottom-pad-ScaleByDPI(28),ScaleByDPI(88),ScaleByDPI(28),TRUE);
+    if(data->hwndDisplay)MoveWindow(data->hwndDisplay,data->rcDisplay.left,data->rcDisplay.top,data->rcDisplay.right-data->rcDisplay.left,data->rcDisplay.bottom-data->rcDisplay.top,TRUE);
+}
+
 HRESULT OnPreferenceDialogInit(HWND hWnd)
 {
-#ifndef MINGW_SPECIFIC_HACKS
-	INITCOMMONCONTROLSEX iccex;
-	iccex.dwSize = sizeof(INITCOMMONCONTROLSEX);
-	iccex.dwICC  = ICC_TAB_CLASSES;
-	InitCommonControlsEx(&iccex);
-#endif
 
-	DWORD dwDlgBase = GetDialogBaseUnits();
-	int cxMargin = LOWORD(dwDlgBase) / 4;
-	int cyMargin = HIWORD(dwDlgBase) / 8;
 
 	DialogHeader* pHeader = new DialogHeader;
 	SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR) pHeader);
 
-	// Get the tab control. Note the hardcoded sizes:
-	HWND hwndTab = GetDlgItem(hWnd, IDC_OPTIONS_TABS);
-	if (!hwndTab) {
+	// Get the vertical settings navigation.
+	HWND hwndNav = GetDlgItem(hWnd, IDC_OPTIONS_NAV);
+	if (!hwndNav) {
 		delete pHeader;
 		return HRESULT_FROM_WIN32(GetLastError());
 	}
 
-	pHeader->hwndTab = hwndTab;
+    SetPropW(hwndNav,L"DMPrefsNavigation",(HANDLE)1);
+	pHeader->hwndNav = hwndNav;
+    SendMessage(hwndNav,LB_SETITEMHEIGHT,0,ScaleByDPI(36));SetWindowFont(hwndNav,g_MessageTextFont,TRUE);
+    pHeader->hwndHeading=CreateWindow(TEXT("STATIC"),TEXT(""),WS_CHILD|WS_VISIBLE,0,0,1,1,hWnd,NULL,g_hInstance,NULL);
+    SetWindowFont(pHeader->hwndHeading,g_GuildCaptionFont,TRUE);
+    pHeader->hwndDone=CreateWindow(TEXT("BUTTON"),TEXT("Done"),WS_CHILD|WS_VISIBLE|WS_TABSTOP|BS_DEFPUSHBUTTON,0,0,1,1,hWnd,(HMENU)IDC_PREFS_DONE,g_hInstance,NULL);
+    SetWindowFont(pHeader->hwndDone,g_MessageTextFont,TRUE);
 
-	// Add a bunch of tabs.
-	TCITEM tie;
-	tie.mask = TCIF_TEXT | TCIF_IMAGE;
+	// Add settings pages; navigation scrolls vertically as more pages are added.
 
-	AddTab(hwndTab, tie, PG_ACCOUNT_AND_PRIVACY, (LPTSTR)TmGetTString(IDS_ACCOUNT_PRIVACY));
-	AddTab(hwndTab, tie, PG_APPEARANCE,          (LPTSTR)TmGetTString(IDS_APPEARANCE));
-	AddTab(hwndTab, tie, PG_NOTIFICATIONS,       (LPTSTR)TmGetTString(IDS_NOTIFICATIONS));
-	AddTab(hwndTab, tie, PG_CHAT,                (LPTSTR)TmGetTString(IDS_CHAT));
-	AddTab(hwndTab, tie, PG_WINDOW,              (LPTSTR)TmGetTString(IDS_WINDOW));
-	AddTab(hwndTab, tie, PG_CONNECTION,          (LPTSTR)TmGetTString(IDS_CONNECTION));
+	AddSettingsPage(hwndNav, PG_ACCOUNT_AND_PRIVACY, (LPTSTR)TmGetTString(IDS_ACCOUNT_PRIVACY));
+	AddSettingsPage(hwndNav, PG_APPEARANCE,          (LPTSTR)TmGetTString(IDS_APPEARANCE));
+	AddSettingsPage(hwndNav, PG_NOTIFICATIONS,       (LPTSTR)TmGetTString(IDS_NOTIFICATIONS));
+	AddSettingsPage(hwndNav, PG_CHAT,                (LPTSTR)TmGetTString(IDS_CHAT));
+	AddSettingsPage(hwndNav, PG_WINDOW,              (LPTSTR)TmGetTString(IDS_WINDOW));
+	AddSettingsPage(hwndNav, PG_CONNECTION,          (LPTSTR)TmGetTString(IDS_CONNECTION));
 
 	// Lock the resources for the child dialog boxes.
 	pHeader->apRes[PG_ACCOUNT_AND_PRIVACY] = LockDialogResource(MAKEINTRESOURCE(IDD_DIALOG_MY_ACCOUNT));
@@ -750,63 +818,53 @@ HRESULT OnPreferenceDialogInit(HWND hWnd)
 
 	MapDialogRect(hWnd, &rcTab);
 
-	// Calculate how large to make the tab control, so
-	// the display area can accommodate all the child dialog boxes.
-	TabCtrl_AdjustRect(pHeader->hwndTab, TRUE, &rcTab);
-	OffsetRect(&rcTab, cxMargin - rcTab.left, cyMargin - rcTab.top);
-
-	// Calculate the display rectangle.
-	CopyRect(&pHeader->rcDisplay, &rcTab);
-	TabCtrl_AdjustRect(pHeader->hwndTab, FALSE, &pHeader->rcDisplay);
-
-	// Set the size and position of the tab control, buttons,
-	// and dialog box.
-	SetWindowPos(pHeader->hwndTab, NULL, rcTab.left, rcTab.top,
-		rcTab.right - rcTab.left, rcTab.bottom - rcTab.top,
-		SWP_NOZORDER);
-
-	// Size the dialog box.
-	SetWindowPos(hWnd, NULL, 0, 0,
-		rcTab.right + cyMargin + (2 * GetSystemMetrics(SM_CXDLGFRAME)),
-		rcTab.bottom + (2 * cyMargin)
-		+ (2 * GetSystemMetrics(SM_CYDLGFRAME))
-		+ GetSystemMetrics(SM_CYCAPTION),
-		SWP_NOMOVE | SWP_NOZORDER);
-
+    RECT desired={0,0,ScaleByDPI(175)+rcTab.right+ScaleByDPI(48),rcTab.bottom+ScaleByDPI(104)};
+    AdjustWindowRectEx(&desired,(DWORD)GetWindowLongPtr(hWnd,GWL_STYLE),FALSE,(DWORD)GetWindowLongPtr(hWnd,GWL_EXSTYLE));
+    MONITORINFO monitor={sizeof(monitor)};GetMonitorInfo(MonitorFromWindow(hWnd,MONITOR_DEFAULTTONEAREST),&monitor);
+    int width=std::min(int(desired.right-desired.left),int(monitor.rcWork.right-monitor.rcWork.left));
+    int height=std::min(int(desired.bottom-desired.top),int(monitor.rcWork.bottom-monitor.rcWork.top));
+    SetWindowPos(hWnd,NULL,monitor.rcWork.left+(monitor.rcWork.right-monitor.rcWork.left-width)/2,monitor.rcWork.top+(monitor.rcWork.bottom-monitor.rcWork.top-height)/2,width,height,SWP_NOZORDER);
+    LayoutPreferences(hWnd);
+    SendMessage(hwndNav,LB_SETCURSEL,0,0);
 	// Simulate selection of the first item.
 	OnSelChanged(hWnd);
 
 	return S_OK;
 }
 
-static bool OptionsOnNotify(HWND hwndTab, HWND hWnd, LPARAM lParam)
-{
-	switch (((LPNMHDR)lParam)->code)
-	{
-		case TCN_SELCHANGE:
-			OnSelChanged(hWnd);
-			break;
-	}
-	return TRUE;
-}
-
 static INT_PTR CALLBACK DialogProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch (uMsg)
 	{
+        case WM_SIZE: LayoutPreferences(hWnd);return TRUE;
+        case WM_GETMINMAXINFO: {
+            auto info=(MINMAXINFO*)lParam;info->ptMinTrackSize={ScaleByDPI(480),ScaleByDPI(360)};return TRUE;
+        }
+        case WM_MEASUREITEM:
+            if(wParam==IDC_OPTIONS_NAV){((MEASUREITEMSTRUCT*)lParam)->itemHeight=ScaleByDPI(36);return TRUE;}break;
+        case WM_DRAWITEM: {
+            auto item=(DRAWITEMSTRUCT*)lParam;
+            if(item->CtlID!=IDC_OPTIONS_NAV || item->itemID==UINT(-1))break;
+            TCHAR text[256]={};SendMessage(item->hwndItem,LB_GETTEXT,item->itemID,(LPARAM)text);
+            int saved=SaveDC(item->hDC);bool selected=(item->itemState&ODS_SELECTED)!=0;
+            COLORREF bg=IsDarkTheme()?(selected?RGB(53,54,60):ThemePalette::Canvas):ThemeColor(selected?COLOR_HIGHLIGHT:COLOR_WINDOW);
+            SetDCBrushColor(item->hDC,bg);FillRect(item->hDC,&item->rcItem,(HBRUSH)GetStockObject(DC_BRUSH));
+            SetTextColor(item->hDC,ThemeColor(selected?COLOR_HIGHLIGHTTEXT:COLOR_WINDOWTEXT));SetBkMode(item->hDC,TRANSPARENT);SelectObject(item->hDC,g_MessageTextFont);
+            RECT label=item->rcItem;label.left+=ScaleByDPI(12);label.right-=ScaleByDPI(8);
+            DrawText(item->hDC,text,-1,&label,DT_SINGLELINE|DT_VCENTER|DT_END_ELLIPSIS|DT_HIDEPREFIX);
+            if(selected){RECT marker=item->rcItem;marker.right=marker.left+ScaleByDPI(3);FillRect(item->hDC,&marker,ThemeBrush(item->itemState&ODS_FOCUS?COLOR_HOTLIGHT:COLOR_GRAYTEXT));}
+            RestoreDC(item->hDC,saved);return TRUE;
+        }
+
 		case WM_INITDIALOG:
 		{
 			OnPreferenceDialogInit(hWnd);
 			break;
 		}
-		case WM_NOTIFY:
-		{
-			LPNMHDR hdr = (LPNMHDR)lParam;
-			return OptionsOnNotify(hdr->hwndFrom, hWnd, lParam);
-		}
 		case WM_DESTROY:
 		{
 			DialogHeader* pData = (DialogHeader*) GetWindowLongPtr(hWnd, GWLP_USERDATA);
+            SetWindowLongPtr(hWnd,GWLP_USERDATA,0);
 			if (pData)
 				delete pData;
 
@@ -814,11 +872,14 @@ static INT_PTR CALLBACK DialogProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 		}
 		case WM_COMMAND:
 		{
+            if(LOWORD(wParam)==IDC_OPTIONS_NAV && HIWORD(wParam)==LBN_SELCHANGE){OnSelChanged(hWnd);return TRUE;}
+            if(LOWORD(wParam)==IDC_PREFS_DONE || LOWORD(wParam)==IDCANCEL){SetFocus(hWnd);EndDialog(hWnd,OPTIONS_RESULT_OK);return TRUE;}
 			return 0L;
 		}
 
 		case WM_CLOSE:
 		{
+            SetFocus(hWnd); // Flush edit focus-loss handlers before destroying a page.
 			EndDialog(hWnd, OPTIONS_RESULT_OK);
 			break;
 		}

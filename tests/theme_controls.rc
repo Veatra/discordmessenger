@@ -3,3 +3,6 @@
 
 // Same private font payload as the application.
 1906 10 "../res/NotoSans-Regular.ttf"
+
+1907 10 "../res/AtkinsonHyperlegible-Regular.ttf"
+1908 10 "../res/Lato-Regular.ttf"

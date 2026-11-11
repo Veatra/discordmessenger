@@ -8,3 +8,5 @@ void ThemeChromeWindow(HWND window);
 bool ThemeMenuPopupActive();
 
 inline HMENU ThemeAppMenu(HWND window) { HMENU menu=GetMenu(window);return menu?menu:(HMENU)GetPropW(window,L"DMAppMenu"); }
+
+void ThemeRefreshChrome(HWND window);
