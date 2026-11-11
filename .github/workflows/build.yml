@@ -1,4 +1,4 @@
-name: Build (MinGW)
+name: Build Windows 8.1 x86 (MinGW)
 
 on:
   push:
@@ -11,7 +11,9 @@ env:
   LIBWEBP_DIR: '/tmp/dm-libwebp/build'
 
 jobs:
-  build-linux-mingw:
+  build-windows81-x86:
+    name: Windows 8.1 x86 executable
+    # Ubuntu hosts MinGW; the application and WebP outputs target Windows x86.
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
@@ -20,10 +22,11 @@ jobs:
           fetch-depth: 0
           submodules: recursive
       
-      - name: Install Compiler Tools
-        run: sudo apt-get update && sudo apt-get install -y g++-mingw-w64-i686-posix binutils-mingw-w64-i686 cmake
+      - name: Install Windows Cross-Compiler
+        timeout-minutes: 8
+        run: bash tools/ci/install-windows-toolchain.sh
       
-      - name: Test Application Logic
+      - name: Run Host Regression Tests
         run: |
           g++ -std=c++11 -Wall -Wextra -Isrc/core tests/typing_expiry.cpp -o /tmp/dm-typing-expiry
           /tmp/dm-typing-expiry
@@ -49,7 +52,7 @@ jobs:
             echo "TAG=$(git describe --abbrev=0 --tags)" >> "$GITHUB_OUTPUT"
             echo "COMMIT=$(git rev-parse --short=8 HEAD)" >> "$GITHUB_OUTPUT"
       
-      - name: Compile Libwebp
+      - name: Compile Windows x86 Libwebp
         run: |
             git clone https://github.com/DiscordMessenger/libwebp.git /tmp/dm-libwebp
             cd /tmp/dm-libwebp
@@ -57,7 +60,7 @@ jobs:
             cmake .. -DCMAKE_TOOLCHAIN_FILE=../win32.cmake
             make -j4
       
-      - name: Make Unicode Build
+      - name: Build Windows 8.1 x86 Executable
         run: make -j4 all DEBUG=no DMCXX=i686-w64-mingw32-g++-posix COMMIT_HASH=${{ steps.get-latest-tag.outputs.COMMIT }}
       
       - name: Prepare Unicode Build

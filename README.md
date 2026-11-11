@@ -376,3 +376,11 @@ midnight, year rollover and daylight-saving changes. The control fixture also
 supports `hidden` to test the on-demand menu, and drives a real native scrollbar
 with mouse input while checking gutter colors during tracking. These offline
 checks do not replace live Discord and Windows 8.1 testing.
+
+The GitHub Actions workflow **Build Windows 8.1 x86 (MinGW)** runs on an Ubuntu
+host but produces only the Windows x86 application package (including WebP).
+Its native host executables are temporary regression-test runners, not a Linux
+application release. Compiler setup uses explicit official Ubuntu repositories,
+bounded download retries, and strict index-refresh errors to avoid an unavailable
+Azure mirror or stale package indexes. This does not change runtime requirements
+or the Windows 8.1 API target / 6.0 loader header.
