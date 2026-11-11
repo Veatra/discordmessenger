@@ -380,7 +380,8 @@ checks do not replace live Discord and Windows 8.1 testing.
 The GitHub Actions workflow **Build Windows 8.1 x86 (MinGW)** runs on an Ubuntu
 host but produces only the Windows x86 application package (including WebP).
 Its native host executables are temporary regression-test runners, not a Linux
-application release. Compiler setup uses explicit official Ubuntu repositories,
-bounded download retries, and strict index-refresh errors to avoid an unavailable
-Azure mirror or stale package indexes. This does not change runtime requirements
+application release. Compiler setup probes the Ubuntu archive with a fallback
+to the independent kernel.org Ubuntu mirror, preserves inherited proxy settings
+through sudo, and uses bounded retries and strict index-refresh errors. Ubuntu
+archive signature verification remains enabled. This does not change runtime requirements
 or the Windows 8.1 API target / 6.0 loader header.

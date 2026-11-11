@@ -8,11 +8,26 @@ if [[ "$ID" != ubuntu ]]; then
     printf 'This CI installer requires an Ubuntu runner.\n' >&2
     exit 1
 fi
+# Select a reachable mirror before APT enters lengthy DNS/download retries.
+# kernel.org hosts an independently resolved mirror of Ubuntu's signed archive.
+mirror=''
+for candidate in https://archive.ubuntu.com/ubuntu https://mirrors.edge.kernel.org/ubuntu; do
+    if curl -fsS --connect-timeout 5 --max-time 15 \
+        "$candidate/dists/$VERSION_CODENAME/InRelease" -o /dev/null; then
+        mirror="$candidate"
+        break
+    fi
+done
+if [[ -z "$mirror" ]]; then
+    printf 'No Ubuntu package mirror is reachable; cannot install the Windows toolchain.\n' >&2
+    exit 1
+fi
+printf 'Using Ubuntu package mirror: %s\n' "$mirror"
 sources="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/discordmessenger-apt.list"
 cat > "$sources" <<SOURCES
-deb https://archive.ubuntu.com/ubuntu ${VERSION_CODENAME} main universe
-deb https://archive.ubuntu.com/ubuntu ${VERSION_CODENAME}-updates main universe
-deb https://security.ubuntu.com/ubuntu ${VERSION_CODENAME}-security main universe
+deb $mirror ${VERSION_CODENAME} main universe
+deb $mirror ${VERSION_CODENAME}-updates main universe
+deb $mirror ${VERSION_CODENAME}-security main universe
 SOURCES
 
 # A managed runner may require its inherited proxy. sudo normally drops these
