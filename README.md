@@ -26,10 +26,6 @@ A Discord server about this client can be joined here: https://discord.gg/cEDjgD
 
 ## Screenshots
 
-![Windows 11 screenshot](doc/ss_11.png)
-![Windows XP screenshot](doc/ss_xp.png)
-![Windows 95 screenshot](doc/ss_95.png)
-![Windows NT 3.1 screenshot](doc/ss_nt31.png)
 
 ## Minimum System Requirements
 
@@ -37,8 +33,6 @@ A Discord server about this client can be joined here: https://discord.gg/cEDjgD
 - Matching 32-bit OpenSSL DLLs and compiler runtime DLLs beside the executable.
 - Visual Studio builds also need their matching Visual C++ runtime, compatible
   with Windows 8.1. MinGW binaries do not use that runtime.
-
-Screenshots above are from the upstream project and include historical platforms.
 
 ## Building
 
